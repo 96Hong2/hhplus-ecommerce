@@ -1,0 +1,26 @@
+{
+  "name": "mock-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "json-server --watch db.json --port 3001",
+    "start": "json-server db.json --port 3001"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/96Hong2/hhplus-ecommerce.git"
+  },
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/96Hong2/hhplus-ecommerce/issues"
+  },
+  "homepage": "https://github.com/96Hong2/hhplus-ecommerce#readme",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "json-server": "^0.17.4"
+  }
+}
