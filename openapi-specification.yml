@@ -1,0 +1,2540 @@
+openapi: 3.0.3
+info:
+  title: E-Commerce API
+  description: 이커머스 플랫폼 API
+  version: 1.0.0
+  contact:
+    name: ehkwon
+    email: ehkwon@example.com
+
+servers:
+  - url: http://localhost:8080
+    description: 로컬 개발 서버
+  - url: https://api.ecommerce.com
+    description: 운영 서버
+
+tags:
+  - name: Product
+    description: 상품 관리
+  - name: Stock
+    description: 재고 관리
+  - name: User
+    description: 사용자 관리
+  - name: Point
+    description: 포인트 관리
+  - name: Cart
+    description: 장바구니 관리
+  - name: Order
+    description: 주문 관리
+  - name: Coupon
+    description: 쿠폰 관리
+  - name: Integration
+    description: 외부 연동 관리
+
+paths:
+  /api/product:
+    get:
+      tags:
+        - Product
+      summary: 상품 목록 조회
+      description: 페이징 및 정렬 옵션을 포함한 상품 목록 조회
+      parameters:
+        - name: page
+          in: query
+          description: 페이지 번호 (0부터 시작)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: 페이지 크기
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: sort
+          in: query
+          description: 정렬 기준 (latest=최신순, sales=판매순, price_asc=낮은가격순, price_desc=높은가격순)
+          required: false
+          schema:
+            type: string
+            enum: [latest, sales, price_asc, price_desc]
+            default: latest
+        - name: category
+          in: query
+          description: 카테고리 필터
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags:
+        - Product
+      summary: 상품 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: 상품 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/product/category/{category}:
+    get:
+      tags:
+        - Product
+      summary: 카테고리별 상품 목록 조회
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+          description: 카테고리명
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [latest, sales, price_asc, price_desc]
+            default: latest
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/product/{productId}:
+    get:
+      tags:
+        - Product
+      summary: 상품 상세 조회
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Product
+      summary: 상품 수정
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Product
+      summary: 상품 삭제 (논리 삭제)
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: 삭제 성공
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/product/options/{productId}:
+    get:
+      tags:
+        - Product
+      summary: 상품 옵션 리스트 조회
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductOptionResponse'
+
+  /api/product/top:
+    get:
+      tags:
+        - Product
+      summary: 인기 상품 조회
+      description: 최근 3일간 판매량 기준
+      parameters:
+        - name: size
+          in: query
+          description: 조회할 상품 개수
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PopularProductResponse'
+
+  /api/product/option:
+    post:
+      tags:
+        - Product
+      summary: 상품 옵션 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductOptionCreateRequest'
+      responses:
+        '201':
+          description: 옵션 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductOptionResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/product/option/{productOptionId}:
+    put:
+      tags:
+        - Product
+      summary: 상품 옵션 수정
+      parameters:
+        - name: productOptionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductOptionUpdateRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductOptionResponse'
+                  message:
+                    type: string
+                    nullable: true
+    delete:
+      tags:
+        - Product
+      summary: 상품 옵션 삭제
+      parameters:
+        - name: productOptionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: 삭제 성공
+
+  /api/stock/{productOptionId}:
+    get:
+      tags:
+        - Stock
+      summary: 상품 재고 조회
+      parameters:
+        - name: productOptionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockResponse'
+    post:
+      tags:
+        - Stock
+      summary: 상품 재고 변경
+      parameters:
+        - name: productOptionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockUpdateRequest'
+      responses:
+        '200':
+          description: 재고 변경 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/StockResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/stock/reserve:
+    post:
+      tags:
+        - Stock
+      summary: 재고 예약 (주문 생성 시 호출)
+      description: 15분간 재고를 예약하고 주문 생성 시점에 즉시 차감하지 않음
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockReserveRequest'
+      responses:
+        '200':
+          description: 재고 예약 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '400':
+          description: 재고 부족
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  data:
+                    type: object
+                    nullable: true
+                  message:
+                    type: string
+                  errorCode:
+                    type: string
+                    example: "STOCK_INSUFFICIENT"
+
+  /api/stock/reserve/{reservationId}/confirm:
+    post:
+      tags:
+        - Stock
+      summary: 재고 예약 확정 (결제 완료 시 호출)
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 재고 확정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/stock/reserve/{reservationId}/release:
+    post:
+      tags:
+        - Stock
+      summary: 재고 예약 해제 (주문 취소 또는 타임아웃 시 호출)
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 재고 해제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/stock/reserve/expired:
+    get:
+      tags:
+        - Stock
+      summary: 만료된 재고 예약 목록 조회 (배치 처리용)
+      description: 타임아웃이 지난 RESERVED 상태의 예약 목록
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/user:
+    get:
+      tags:
+        - User
+      summary: 유저 목록 조회
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          description: 역할 필터
+          schema:
+            type: string
+            enum: [CUSTOMER, ADMIN]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+
+    post:
+      tags:
+        - User
+      summary: 유저 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: 유저 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/user/{userId}:
+    get:
+      tags:
+        - User
+      summary: 유저 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - User
+      summary: 유저 삭제
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: 삭제 성공
+
+  /api/user/point/{userId}:
+    get:
+      tags:
+        - User
+      summary: 유저 포인트 잔액 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: integer
+                    format: int64
+                  pointBalance:
+                    type: number
+                    format: decimal
+
+  /api/point/{userId}:
+    get:
+      tags:
+        - Point
+      summary: 유저 포인트 히스토리 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: transactionType
+          in: query
+          description: 거래 타입 필터
+          schema:
+            type: string
+            enum: [CHARGE, USE]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PointHistoryResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/point/charge/{userId}:
+    post:
+      tags:
+        - Point
+      summary: 유저 포인트 충전
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointChargeRequest'
+      responses:
+        '200':
+          description: 충전 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PointHistoryResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/point/use/{userId}:
+    post:
+      tags:
+        - Point
+      summary: 유저 포인트 사용
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointUseRequest'
+      responses:
+        '200':
+          description: 사용 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PointHistoryResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '400':
+          description: 잔액 부족
+
+  /api/point/history/{userId}:
+    post:
+      tags:
+        - Point
+      summary: 포인트 히스토리 등록
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PointHistoryCreateRequest'
+      responses:
+        '201':
+          description: 등록 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PointHistoryResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/cart/{userId}:
+    get:
+      tags:
+        - Cart
+      summary: 유저 장바구니 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartResponse'
+    post:
+      tags:
+        - Cart
+      summary: 장바구니 추가
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartAddRequest'
+      responses:
+        '201':
+          description: 장바구니 추가 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CartResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/cart/{cartId}:
+    patch:
+      tags:
+        - Cart
+      summary: 장바구니 상품 옵션 수정
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartUpdateRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CartResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/cart/{userId}/{productId}:
+    delete:
+      tags:
+        - Cart
+      summary: 장바구니 상품 제거
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: 삭제 성공
+
+  /api/order/{userId}:
+    get:
+      tags:
+        - Order
+      summary: 주문 목록 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          description: 주문 상태 필터
+          schema:
+            type: string
+            enum: [PENDING, PAID, CANCELLED]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+    post:
+      tags:
+        - Order
+      summary: 주문 생성
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: 주문 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/order/detail/{orderId}:
+    get:
+      tags:
+        - Order
+      summary: 주문 상세 조회
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetailResponse'
+
+  /api/order/orderItem/{orderId}:
+    post:
+      tags:
+        - Order
+      summary: 주문 항목 생성
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemCreateRequest'
+      responses:
+        '201':
+          description: 주문 항목 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderItemResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/order/status/{userId}:
+    patch:
+      tags:
+        - Order
+      summary: 주문 상태 변경
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdateRequest'
+      responses:
+        '200':
+          description: 상태 변경 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/order/orderItem/status/{orderItemId}:
+    patch:
+      tags:
+        - Order
+      summary: 주문 항목 상태 변경
+      parameters:
+        - name: orderItemId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderItemStatusUpdateRequest'
+      responses:
+        '200':
+          description: 상태 변경 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderItemResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/order/{orderId}/payment:
+    post:
+      tags:
+        - Order
+      summary: 결제
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: 결제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PaymentResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/coupons:
+    get:
+      tags:
+        - Coupon
+      summary: 쿠폰 목록 조회
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: discountType
+          in: query
+          description: 할인 타입 필터
+          schema:
+            type: string
+            enum: [FIXED, PERCENTAGE]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CouponResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+    post:
+      tags:
+        - Coupon
+      summary: 쿠폰 생성
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CouponCreateRequest'
+      responses:
+        '201':
+          description: 쿠폰 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CouponResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/coupons/{couponId}:
+    get:
+      tags:
+        - Coupon
+      summary: 쿠폰 상세 조회
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CouponResponse'
+    put:
+      tags:
+        - Coupon
+      summary: 쿠폰 정보 수정
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CouponUpdateRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CouponResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/coupons/user/{userId}:
+    get:
+      tags:
+        - Coupon
+      summary: 유저의 쿠폰 목록 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: isUsed
+          in: query
+          description: 사용 여부 필터
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserCouponResponse'
+
+  /api/coupons/user/{userId}/{couponId}:
+    get:
+      tags:
+        - Coupon
+      summary: 유저의 쿠폰 상세 조회
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCouponResponse'
+    post:
+      tags:
+        - Coupon
+      summary: 유저에게 일반 쿠폰 발행
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '201':
+          description: 쿠폰 발행 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserCouponResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/coupons/{couponId}/issue:
+    patch:
+      tags:
+        - Coupon
+      summary: 선착순 쿠폰 발행
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  format: int64
+      responses:
+        '200':
+          description: 쿠폰 발행 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserCouponResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '409':
+          description: 쿠폰 소진
+
+  /api/coupons/{couponId}/count:
+    patch:
+      tags:
+        - Coupon
+      summary: 선착순 쿠폰 개수 변경
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxIssueCount:
+                  type: integer
+                  description: 변경할 최대 발급 수량
+      responses:
+        '200':
+          description: 개수 변경 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CouponResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/integrations/logs/{orderId}:
+    get:
+      tags:
+        - Integration
+      summary: 주문 연동 로그 조회
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: integrationType
+          in: query
+          description: 연동 시스템 타입 필터
+          schema:
+            type: string
+            enum: [LOGISTICS, SALES_MANAGEMENT, ERP]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationLogResponse'
+
+  /api/integrations/retry/{logId}:
+    post:
+      tags:
+        - Integration
+      summary: 실패 건 재시도
+      parameters:
+        - name: logId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 재시도 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/IntegrationLogResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+components:
+  schemas:
+    ApiSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        data:
+          type: object
+        message:
+          type: string
+          nullable: true
+
+    ApiPageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        data:
+          type: object
+          properties:
+            content:
+              type: array
+              items:
+                type: object
+            page:
+              type: integer
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer
+        message:
+          type: string
+          nullable: true
+
+    ApiErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        data:
+          type: object
+          nullable: true
+        message:
+          type: string
+        errorCode:
+          type: string
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - productName
+        - category
+        - description
+      properties:
+        productName:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        imageUrl:
+          type: string
+          maxLength: 500
+        exposeFlag:
+          type: boolean
+          default: true
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        productName:
+          type: string
+          maxLength: 200
+        category:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        imageUrl:
+          type: string
+          maxLength: 500
+        exposeFlag:
+          type: boolean
+
+    # 일반 상품 조회 응답
+    ProductResponse:
+      type: object
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        exposeFlag:
+          type: boolean
+        isSoldOut:
+          type: boolean
+          description: 모든 옵션이 품절 상태인 경우 true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # 상품 옵션 리스트를 포함한 상품 조회 응답
+    ProductDetailResponse:
+      type: object
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        exposeFlag:
+          type: boolean
+        isSoldOut:
+          type: boolean
+          description: 모든 옵션이 품절 상태인 경우 true
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductOptionResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductOptionCreateRequest:
+      type: object
+      required:
+        - productId
+        - optionName
+        - optionPrice
+        - stockQuantity
+      properties:
+        productId:
+          type: integer
+          format: int64
+        optionName:
+          type: string
+          maxLength: 100
+          description: 예) 사이즈-M, 색상-레드
+        optionPrice:
+          type: number
+          format: decimal
+          minimum: 0
+        stockQuantity:
+          type: integer
+          minimum: 0
+        soldOutFlag:
+          type: boolean
+          default: false
+        exposeFlag:
+          type: boolean
+          default: true
+
+    ProductOptionUpdateRequest:
+      type: object
+      properties:
+        optionName:
+          type: string
+          maxLength: 100
+        optionPrice:
+          type: number
+          format: decimal
+        stockQuantity:
+          type: integer
+        soldOutFlag:
+          type: boolean
+        exposeFlag:
+          type: boolean
+
+    ProductOptionResponse:
+      type: object
+      properties:
+        productOptionId:
+          type: integer
+          format: int64
+        productId:
+          type: integer
+          format: int64
+        optionName:
+          type: string
+        optionPrice:
+          type: number
+          format: decimal
+        stockQuantity:
+          type: integer
+        soldOutFlag:
+          type: boolean
+        exposeFlag:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PopularProductResponse:
+      type: object
+      properties:
+        rank:
+          type: integer
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        category:
+          type: string
+        imageUrl:
+          type: string
+        salesCount:
+          type: integer
+        calculationDate:
+          type: string
+          format: date
+
+    StockReserveRequest:
+      type: object
+      required:
+        - orderId
+        - productOptionId
+        - quantity
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        productOptionId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    StockReservationResponse:
+      type: object
+      properties:
+        stockReservationId:
+          type: integer
+          format: int64
+        productOptionId:
+          type: integer
+          format: int64
+        orderId:
+          type: integer
+          format: int64
+        reservedQuantity:
+          type: integer
+        reservationStatus:
+          type: string
+          enum: [ RESERVED, CONFIRMED, RELEASED ]
+          description: |
+            - RESERVED: 예약 중 (15분 유효)
+            - CONFIRMED: 확정됨 (결제 완료)
+            - RELEASED: 해제됨 (타임아웃 또는 취소)
+        reservedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          description: 예약 만료 시각 (reservedAt + 15분)
+        updatedAt:
+          type: string
+          format: date-time
+
+    StockUpdateRequest:
+      type: object
+      required:
+        - amount
+        - updatedBy
+      properties:
+        amount:
+          type: integer
+          description: 양수는 추가, 음수는 감소
+        updatedBy:
+          type: integer
+          format: int64
+          description: 수정자 ID
+
+    StockResponse:
+      type: object
+      properties:
+        productOptionId:
+          type: integer
+          format: int64
+        physicalStock:
+          type: integer
+          description: 물리적 재고 수량
+        reservedStock:
+          type: integer
+          description: 예약된 재고 수량
+        availableStock:
+          type: integer
+          description: 실제 판매 가능 재고 (physicalStock - reservedStock)
+        soldOutFlag:
+          type: boolean
+        histories:
+          type: array
+          items:
+            type: object
+            properties:
+              stockHistoryId:
+                type: integer
+                format: int64
+              amount:
+                type: integer
+              updatedBy:
+                type: integer
+                format: int64
+              createdAt:
+                type: string
+                format: date-time
+
+    UserCreateRequest:
+      type: object
+      required:
+        - username
+      properties:
+        username:
+          type: string
+          maxLength: 50
+        role:
+          type: string
+          enum: [CUSTOMER, ADMIN]
+          default: CUSTOMER
+
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        username:
+          type: string
+        pointBalance:
+          type: number
+          format: decimal
+        role:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PointChargeRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+        description:
+          type: string
+          maxLength: 200
+
+    PointUseRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+        orderId:
+          type: integer
+          format: int64
+        description:
+          type: string
+          maxLength: 200
+
+    PointHistoryCreateRequest:
+      type: object
+      required:
+        - transactionType
+        - amount
+        - balanceAfter
+      properties:
+        transactionType:
+          type: string
+          enum: [CHARGE, USE]
+        amount:
+          type: number
+          format: decimal
+        balanceAfter:
+          type: number
+          format: decimal
+        orderId:
+          type: integer
+          format: int64
+        description:
+          type: string
+
+    PointHistoryResponse:
+      type: object
+      properties:
+        pointHistoryId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        transactionType:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        balanceAfter:
+          type: number
+          format: decimal
+        orderId:
+          type: integer
+          format: int64
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CartAddRequest:
+      type: object
+      required:
+        - productOptionId
+        - quantity
+      properties:
+        productOptionId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    CartUpdateRequest:
+      type: object
+      properties:
+        productOptionId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    CartResponse:
+      type: object
+      properties:
+        cartId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        productOptionId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        optionName:
+          type: string
+        optionPrice:
+          type: number
+          format: decimal
+        quantity:
+          type: integer
+        subtotal:
+          type: number
+          format: decimal
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderCreateRequest:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: 주문 항목 (재고 예약은 주문 생성 시점에 자동으로 처리됨)
+          items:
+            type: object
+            properties:
+              productOptionId:
+                type: integer
+                format: int64
+              quantity:
+                type: integer
+                minimum: 1
+        usedPoints:
+          type: number
+          format: decimal
+          default: 0
+        couponId:
+          type: integer
+          format: int64
+
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        orderNumber:
+          type: string
+        userId:
+          type: integer
+          format: int64
+        totalAmount:
+          type: number
+          format: decimal
+          description: 주문 상품들의 정가 합계 (할인 전)
+        discountAmount:
+          type: number
+          format: decimal
+          description: 쿠폰으로 인한 할인 금액
+        finalAmount:
+          type: number
+          format: decimal
+          description: 실제 결제 금액 (totalAmount - discountAmount - usedPoints)
+        usedPoints:
+          type: number
+          format: decimal
+        couponId:
+          type: integer
+          format: int64
+        orderStatus:
+          type: string
+          enum: [ PENDING, PAID, CANCELLED ]
+          description: |
+            - PENDING: 결제 대기 (재고 예약 상태)
+            - PAID: 결제 완료 (재고 확정 차감, 포인트/쿠폰 차감 완료)
+            - CANCELLED: 주문 취소 (예약 재고 복원, 포인트/쿠폰 환원)
+        expiresAt:
+          type: string
+          format: date-time
+          description: PENDING 상태 만료 시각 (주문 생성 시각 + 재고예약 유효 시간)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderDetailResponse:
+      type: object
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        orderNumber:
+          type: string
+        userId:
+          type: integer
+          format: int64
+        totalAmount:
+          type: number
+          format: decimal
+        discountAmount:
+          type: number
+          format: decimal
+        finalAmount:
+          type: number
+          format: decimal
+        usedPoints:
+          type: number
+          format: decimal
+        couponId:
+          type: integer
+          format: int64
+        orderStatus:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderItemCreateRequest:
+      type: object
+      required:
+        - productOptionId
+        - quantity
+      properties:
+        productOptionId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    OrderItemResponse:
+      type: object
+      properties:
+        orderItemId:
+          type: integer
+          format: int64
+        orderId:
+          type: integer
+          format: int64
+        productId:
+          type: integer
+          format: int64
+        productOptionId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        optionName:
+          type: string
+        productPrice:
+          type: number
+          format: decimal
+        quantity:
+          type: integer
+        subtotal:
+          type: number
+          format: decimal
+        itemStatus:
+          type: string
+          enum: [ PREPARING, SHIPPING, DELIVERED, CANCELLED ]
+          description: |
+            - PREPARING: 상품 준비 중 (결제 완료 후 출고 전)
+            - SHIPPING: 배송 중 (물류사에 인계 완료)
+            - DELIVERED: 배송 완료 (고객 수령 완료)
+            - CANCELLED: 개별 상품 취소 (PREPARING 상태에서만 가능)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderStatusUpdateRequest:
+      type: object
+      required:
+        - orderId
+        - orderStatus
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        orderStatus:
+          type: string
+          enum: [PENDING, PAID, CANCELLED]
+
+    OrderItemStatusUpdateRequest:
+      type: object
+      required:
+        - itemStatus
+      properties:
+        itemStatus:
+          type: string
+          enum: [PREPARING, SHIPPING, DELIVERED, CANCELLED]
+
+    PaymentRequest:
+      type: object
+      required:
+        - paymentMethod
+      properties:
+        paymentMethod:
+          type: string
+          description: 결제 수단
+        usedPoints:
+          type: number
+          format: decimal
+          default: 0
+
+    PaymentResponse:
+      type: object
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        orderNumber:
+          type: string
+        paymentStatus:
+          type: string
+        finalAmount:
+          type: number
+          format: decimal
+        paidAt:
+          type: string
+          format: date-time
+
+    CouponCreateRequest:
+      type: object
+      required:
+        - couponName
+        - discountType
+        - discountValue
+        - maxIssueCount
+        - validFrom
+        - validTo
+        - createdBy
+      properties:
+        couponName:
+          type: string
+          maxLength: 100
+        discountType:
+          type: string
+          enum: [FIXED, PERCENTAGE]
+        discountValue:
+          type: number
+          format: decimal
+          minimum: 0
+        minOrderAmount:
+          type: number
+          format: decimal
+          default: 0
+        maxIssueCount:
+          type: integer
+          minimum: 1
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        createdBy:
+          type: integer
+          format: int64
+
+    CouponUpdateRequest:
+      type: object
+      properties:
+        couponName:
+          type: string
+        discountValue:
+          type: number
+          format: decimal
+        minOrderAmount:
+          type: number
+          format: decimal
+        maxIssueCount:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+
+    CouponResponse:
+      type: object
+      properties:
+        couponId:
+          type: integer
+          format: int64
+        couponName:
+          type: string
+        discountType:
+          type: string
+        discountValue:
+          type: number
+          format: decimal
+        minOrderAmount:
+          type: number
+          format: decimal
+        maxIssueCount:
+          type: integer
+        issuedCount:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        createdBy:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserCouponResponse:
+      type: object
+      properties:
+        userCouponId:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        couponId:
+          type: integer
+          format: int64
+        couponName:
+          type: string
+        discountType:
+          type: string
+        discountValue:
+          type: number
+          format: decimal
+        isUsed:
+          type: boolean
+        usedAt:
+          type: string
+          format: date-time
+        orderId:
+          type: integer
+          format: int64
+        issuedAt:
+          type: string
+          format: date-time
+
+    IntegrationLogResponse:
+      type: object
+      properties:
+        logId:
+          type: integer
+          format: int64
+        orderId:
+          type: integer
+          format: int64
+        integrationType:
+          type: string
+          enum: [LOGISTICS, SALES_MANAGEMENT, ERP]
+        isSuccess:
+          type: boolean
+        responseMessage:
+          type: string
+        retryCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        data:
+          type: object
+          nullable: true
+        message:
+          type: string
+        errorCode:
+          type: string
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            stockInsufficient:
+              summary: 재고 부족
+              value:
+                success: false
+                data: null
+                message: "재고가 부족합니다"
+                errorCode: "STOCK_INSUFFICIENT"
+            invalidParameter:
+              summary: 잘못된 파라미터
+              value:
+                success: false
+                data: null
+                message: "유효하지 않은 요청입니다"
+                errorCode: "INVALID_PARAMETER"
+
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            message: "요청한 리소스를 찾을 수 없습니다"
+            errorCode: "RESOURCE_NOT_FOUND"
+
+    Conflict:
+      description: 리소스 충돌
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            couponExhausted:
+              summary: 쿠폰 소진
+              value:
+                success: false
+                data: null
+                message: "쿠폰이 모두 소진되었습니다"
+                errorCode: "COUPON_EXHAUSTED"
+            orderTimeout:
+              summary: 주문 타임아웃
+              value:
+                success: false
+                data: null
+                message: "주문 유효시간이 만료되었습니다"
+                errorCode: "ORDER_TIMEOUT"
