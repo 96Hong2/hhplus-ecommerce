@@ -14,6 +14,61 @@
 
 ---
 
+## 용어 사전
+
+### 주문 관련 상태
+
+#### order_status (주문 전체 상태)
+- **PENDING**: 결제 대기 상태. 주문 생성 직후 재고가 예약된 상태
+    - 전환 조건: 주문 생성 API 호출 성공 시
+    - 유효 기간: 15분 (타임아웃 시 자동 CANCELLED)
+- **PAID**: 결제 완료 상태. 포인트/쿠폰 차감 완료, 재고 확정 차감됨
+    - 전환 조건: 결제 API 호출 성공 및 결제 승인 완료
+- **CANCELLED**: 주문 취소 상태. 예약 재고 복원, 포인트/쿠폰 환원됨
+    - 전환 조건: 고객의 명시적 취소 요청 또는 15분 타임아웃
+
+#### item_status (주문 상품별 배송 상태)
+- **PREPARING**: 상품 준비 중. 결제 완료 후 출고 전 단계
+    - 전환 조건: 주문 상태가 PAID로 변경 시 자동 설정
+- **SHIPPING**: 배송 중. 물류사에 인계 완료
+    - 전환 조건: 관리자의 출고 처리 또는 물류 연동 시스템 응답
+- **DELIVERED**: 배송 완료. 고객 수령 완료
+    - 전환 조건: 물류사의 배송 완료 알림 또는 관리자의 수동 처리
+- **CANCELLED**: 개별 상품 취소. 부분 취소 시 사용
+    - 전환 조건: PREPARING 상태에서만 가능, 고객 요청 또는 재고 부족
+
+### 재고 관련
+
+- **physicalStock**: 물리적 재고 수량
+- **reservedStock**: 예약된 재고 수량
+- **availableStock**: 실제 판매 가능 재고 (physicalStock - reservedStock)
+
+#### reservation_status (재고 예약 상태)
+- **RESERVED**: 재고 예약 중. 주문 생성 시점부터 15분간 유지
+- **CONFIRMED**: 재고 확정. 결제 완료 시 실제 재고에서 차감
+- **RELEASED**: 예약 해제. 타임아웃 또는 주문 취소 시 재고 복원
+
+### 금액 관련 용어
+
+- **total_amount**: 주문 상품들의 정가 합계 (할인 전)
+- **discount_amount**: 쿠폰으로 인한 할인 금액
+- **final_amount**: 고객이 실제 결제해야 할 금액 (total_amount - discount_amount - used_points)
+- **used_points**: 결제 시 사용한 포인트 (1포인트 = 1원)
+
+### 플래그 관련 용어
+
+- **expose_flag**: 노출 여부
+    - 1: 고객에게 노출 (목록/검색 결과에 표시)
+    - 0: 비노출 (관리자만 조회 가능, 고객 화면에서 숨김)
+- **sold_out_flag**: 품절 여부
+    - 1: 품절 (재고 없음, 주문 불가)
+    - 0: 판매 중 (재고 있음, 주문 가능)
+- **is_deleted**: 논리 삭제 여부
+    - 1: 삭제됨 (DB에 존재하나 모든 API에서 제외)
+    - 0: 활성 상태
+
+---
+
 ## ERD (Entity Relationship Diagram)
 
 ### ERD 다이어그램
@@ -89,6 +144,25 @@ created_at
 }
 
 note: '재고 이력 (옵션별)'
+}
+
+Table stock_reservations {
+stock_reservation_id BIGINT [pk, increment, note: '재고 예약 고유 ID']
+product_option_id BIGINT [not null, ref: > product_options.product_option_id, note: '상품 옵션 ID']
+order_id BIGINT [not null, ref: > orders.order_id, note: '주문 ID']
+reserved_quantity INT [not null, note: '예약 수량']
+reservation_status VARCHAR(20) [not null, default: 'RESERVED', note: '예약 상태: RESERVED(예약중), CONFIRMED(확정), RELEASED(해제)']
+reserved_at DATETIME [not null, default: `CURRENT_TIMESTAMP`, note: '예약 시각']
+expires_at DATETIME [not null, note: '예약 만료 시각 (reserved_at + 15분)']
+updated_at DATETIME [not null, default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, note: '수정일시']
+
+indexes {
+order_id
+(product_option_id, reservation_status)
+expires_at
+}
+
+note: '재고 예약 관리 (15분 타임아웃 정책)'
 }
 
 Table carts {
@@ -276,13 +350,22 @@ note: '최근 3일간 인기 상품 통계 (배치로 집계)'
 - `products`: 상품 기본 정보
 - `product_options`: 상품 옵션 및 옵션별 가격/재고
 - `stock_histories`: 재고 조정 이력
+- `stock_reservations`: 재고 예약
 
 **비즈니스 규칙**:
 - 상품은 하나 이상의 옵션을 가져야 함
+- 상품의 품절 여부는 product_options의 sold_out_flag로만 관리 (products 테이블에는 없음)
+- 상품 전체 품절 여부 = 모든 옵션의 sold_out_flag가 1인 경우
 - 재고는 옵션 단위로 관리되며 음수가 될 수 없음
 - `expose_flag`가 0인 상품은 목록에 노출되지 않음
 - `sold_out_flag`가 1인 옵션은 주문 불가
 - 재고 조정 시 조정 사유와 조정자를 기록해야 함
+- 주문 생성 시 재고는 '예약(RESERVED)' 상태로 전환되며, 즉시 차감하지 않음
+- 예약된 재고는 15분 타임아웃 정책 적용:
+  - 15분 내 결제 완료: 재고 확정 차감 (CONFIRMED)
+  - 15분 내 미결제: 자동 예약 해제 및 재고 복원 (RELEASED)
+  - 주문 취소: 즉시 예약 해제 및 재고 복원
+- 실제 판매 가능 재고 = 물리적 재고 - 예약된 재고(RESERVED)
 
 ---
 
@@ -308,11 +391,14 @@ note: '최근 3일간 인기 상품 통계 (배치로 집계)'
 - `order_items`: 주문 상품 상세 및 개별 상품 배송 상태
 
 **비즈니스 규칙**:
-- 주문 생성 시 재고 확인 필수
-- 재고 부족 시 주문 생성 실패
 - 주문 상태: `PENDING` → `PAID` → (각 아이템별 상태 진행)
 - 주문 아이템 상태: `PREPARING` → `SHIPPING` → `DELIVERED`
 - 하나의 주문 내에서 각 상품은 독립적인 배송 상태를 가질 수 있음
+- 주문 생성 시 재고 예약 처리 (즉시 차감 X)
+- 재고 예약 실패 시 주문 생성 불가
+- 결제 완료(PAID) 시점에 예약된 재고 확정 차감
+- 15분 내 미결제 주문은 자동 취소(CANCELLED)되며 예약 재고 자동 복원
+- 고객의 명시적 주문 취소 시에도 예약 재고 즉시 복원
 - 결제 완료 시 재고 차감 및 포인트 차감 처리
 - 쿠폰은 주문당 하나만 적용 가능
 

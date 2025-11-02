@@ -1,4 +1,4 @@
-openapi: 3.0.4
+openapi: 3.0.3
 info:
   title: E-Commerce API
   description: 이커머스 플랫폼 API
@@ -78,18 +78,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ProductResponse'
-                  totalElements:
-                    type: integer
-                  totalPages:
-                    type: integer
-                  page:
-                    type: integer
-                  size:
-                    type: integer
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
         '400':
           $ref: '#/components/responses/BadRequest'
     post:
@@ -108,7 +117,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductResponse'
+                  message:
+                    type: string
+                    nullable: true
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -148,14 +166,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ProductResponse'
-                  totalElements:
-                    type: integer
-                  totalPages:
-                    type: integer
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ProductResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
 
   /api/product/{productId}:
     get:
@@ -201,7 +232,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductResponse'
+                  message:
+                    type: string
+                    nullable: true
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -250,12 +290,12 @@ paths:
       summary: 인기 상품 조회
       description: 최근 3일간 판매량 기준
       parameters:
-        - name: limit
+        - name: size
           in: query
           description: 조회할 상품 개수
           schema:
             type: integer
-            default: 10
+            default: 5
             minimum: 1
             maximum: 50
       responses:
@@ -285,7 +325,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductOptionResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductOptionResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/product/option/{productOptionId}:
     put:
@@ -311,7 +360,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProductOptionResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/ProductOptionResponse'
+                  message:
+                    type: string
+                    nullable: true
     delete:
       tags:
         - Product
@@ -369,7 +427,142 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StockResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/StockResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/stock/reserve:
+    post:
+      tags:
+        - Stock
+      summary: 재고 예약 (주문 생성 시 호출)
+      description: 15분간 재고를 예약하고 주문 생성 시점에 즉시 차감하지 않음
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StockReserveRequest'
+      responses:
+        '200':
+          description: 재고 예약 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+        '400':
+          description: 재고 부족
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  data:
+                    type: object
+                    nullable: true
+                  message:
+                    type: string
+                  errorCode:
+                    type: string
+                    example: "STOCK_INSUFFICIENT"
+
+  /api/stock/reserve/{reservationId}/confirm:
+    post:
+      tags:
+        - Stock
+      summary: 재고 예약 확정 (결제 완료 시 호출)
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 재고 확정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/stock/reserve/{reservationId}/release:
+    post:
+      tags:
+        - Stock
+      summary: 재고 예약 해제 (주문 취소 또는 타임아웃 시 호출)
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 재고 해제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
+
+  /api/stock/reserve/expired:
+    get:
+      tags:
+        - Stock
+      summary: 만료된 재고 예약 목록 조회 (배치 처리용)
+      description: 타임아웃이 지난 RESERVED 상태의 예약 목록
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StockReservationResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/user:
     get:
@@ -401,14 +594,28 @@ paths:
               schema:
                 type: object
                 properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UserResponse'
-                  totalElements:
-                    type: integer
-                  totalPages:
-                    type: integer
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
+
     post:
       tags:
         - User
@@ -425,7 +632,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/user/{userId}:
     get:
@@ -445,7 +661,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserResponse'
+                  message:
+                    type: string
+                    nullable: true
         '404':
           $ref: '#/components/responses/NotFound'
     delete:
@@ -526,12 +751,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PointHistoryResponse'
-                  totalElements:
-                    type: integer
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PointHistoryResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
 
   /api/point/charge/{userId}:
     post:
@@ -557,7 +797,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PointHistoryResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PointHistoryResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/point/use/{userId}:
     post:
@@ -583,7 +832,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PointHistoryResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PointHistoryResponse'
+                  message:
+                    type: string
+                    nullable: true
         '400':
           description: 잔액 부족
 
@@ -611,7 +869,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PointHistoryResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PointHistoryResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/cart/{userId}:
     get:
@@ -657,7 +924,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CartResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CartResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/cart/{cartId}:
     patch:
@@ -683,7 +959,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CartResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CartResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/cart/{userId}/{productId}:
     delete:
@@ -743,12 +1028,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/OrderResponse'
-                  totalElements:
-                    type: integer
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
     post:
       tags:
         - Order
@@ -772,7 +1072,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/order/detail/{orderId}:
     get:
@@ -818,7 +1127,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderItemResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderItemResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/order/status/{userId}:
     patch:
@@ -844,7 +1162,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/order/orderItem/status/{orderItemId}:
     patch:
@@ -870,7 +1197,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderItemResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/OrderItemResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/order/{orderId}/payment:
     post:
@@ -896,7 +1232,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/PaymentResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/coupons:
     get:
@@ -928,12 +1273,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/CouponResponse'
-                  totalElements:
-                    type: integer
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CouponResponse'
+                      page:
+                        type: integer
+                      size:
+                        type: integer
+                      totalElements:
+                        type: integer
+                      totalPages:
+                        type: integer
+                  message:
+                    type: string
+                    nullable: true
     post:
       tags:
         - Coupon
@@ -950,7 +1310,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CouponResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CouponResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/coupons/{couponId}:
     get:
@@ -994,7 +1363,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CouponResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CouponResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/coupons/user/{userId}:
     get:
@@ -1051,7 +1429,7 @@ paths:
     post:
       tags:
         - Coupon
-      summary: 유저에게 쿠폰 발행
+      summary: 유저에게 일반 쿠폰 발행
       parameters:
         - name: userId
           in: path
@@ -1071,7 +1449,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserCouponResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserCouponResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/coupons/{couponId}/issue:
     patch:
@@ -1101,7 +1488,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserCouponResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/UserCouponResponse'
+                  message:
+                    type: string
+                    nullable: true
         '409':
           description: 쿠폰 소진
 
@@ -1133,7 +1529,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CouponResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/CouponResponse'
+                  message:
+                    type: string
+                    nullable: true
 
   /api/integrations/logs/{orderId}:
     get:
@@ -1181,10 +1586,70 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/IntegrationLogResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+                  data:
+                    $ref: '#/components/schemas/IntegrationLogResponse'
+                  message:
+                    type: string
+                    nullable: true
 
 components:
   schemas:
+    ApiSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        data:
+          type: object
+        message:
+          type: string
+          nullable: true
+
+    ApiPageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        data:
+          type: object
+          properties:
+            content:
+              type: array
+              items:
+                type: object
+            page:
+              type: integer
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer
+        message:
+          type: string
+          nullable: true
+
+    ApiErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        data:
+          type: object
+          nullable: true
+        message:
+          type: string
+        errorCode:
+          type: string
+
     ProductCreateRequest:
       type: object
       required:
@@ -1224,6 +1689,7 @@ components:
         exposeFlag:
           type: boolean
 
+    # 일반 상품 조회 응답
     ProductResponse:
       type: object
       properties:
@@ -1240,6 +1706,9 @@ components:
           type: string
         exposeFlag:
           type: boolean
+        isSoldOut:
+          type: boolean
+          description: 모든 옵션이 품절 상태인 경우 true
         createdAt:
           type: string
           format: date-time
@@ -1247,6 +1716,7 @@ components:
           type: string
           format: date-time
 
+    # 상품 옵션 리스트를 포함한 상품 조회 응답
     ProductDetailResponse:
       type: object
       properties:
@@ -1263,6 +1733,9 @@ components:
           type: string
         exposeFlag:
           type: boolean
+        isSoldOut:
+          type: boolean
+          description: 모든 옵션이 품절 상태인 경우 true
         options:
           type: array
           items:
@@ -1366,6 +1839,55 @@ components:
           type: string
           format: date
 
+    StockReserveRequest:
+      type: object
+      required:
+        - orderId
+        - productOptionId
+        - quantity
+      properties:
+        orderId:
+          type: integer
+          format: int64
+        productOptionId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    StockReservationResponse:
+      type: object
+      properties:
+        stockReservationId:
+          type: integer
+          format: int64
+        productOptionId:
+          type: integer
+          format: int64
+        orderId:
+          type: integer
+          format: int64
+        reservedQuantity:
+          type: integer
+        reservationStatus:
+          type: string
+          enum: [ RESERVED, CONFIRMED, RELEASED ]
+          description: |
+            - RESERVED: 예약 중 (15분 유효)
+            - CONFIRMED: 확정됨 (결제 완료)
+            - RELEASED: 해제됨 (타임아웃 또는 취소)
+        reservedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          description: 예약 만료 시각 (reservedAt + 15분)
+        updatedAt:
+          type: string
+          format: date-time
+
     StockUpdateRequest:
       type: object
       required:
@@ -1386,8 +1908,15 @@ components:
         productOptionId:
           type: integer
           format: int64
-        stockQuantity:
+        physicalStock:
           type: integer
+          description: 물리적 재고 수량
+        reservedStock:
+          type: integer
+          description: 예약된 재고 수량
+        availableStock:
+          type: integer
+          description: 실제 판매 가능 재고 (physicalStock - reservedStock)
         soldOutFlag:
           type: boolean
         histories:
@@ -1578,6 +2107,7 @@ components:
       properties:
         items:
           type: array
+          description: 주문 항목 (재고 예약은 주문 생성 시점에 자동으로 처리됨)
           items:
             type: object
             properties:
@@ -1609,12 +2139,15 @@ components:
         totalAmount:
           type: number
           format: decimal
+          description: 주문 상품들의 정가 합계 (할인 전)
         discountAmount:
           type: number
           format: decimal
+          description: 쿠폰으로 인한 할인 금액
         finalAmount:
           type: number
           format: decimal
+          description: 실제 결제 금액 (totalAmount - discountAmount - usedPoints)
         usedPoints:
           type: number
           format: decimal
@@ -1623,7 +2156,15 @@ components:
           format: int64
         orderStatus:
           type: string
-          enum: [PENDING, PAID, CANCELLED]
+          enum: [ PENDING, PAID, CANCELLED ]
+          description: |
+            - PENDING: 결제 대기 (재고 예약 상태)
+            - PAID: 결제 완료 (재고 확정 차감, 포인트/쿠폰 차감 완료)
+            - CANCELLED: 주문 취소 (예약 재고 복원, 포인트/쿠폰 환원)
+        expiresAt:
+          type: string
+          format: date-time
+          description: PENDING 상태 만료 시각 (주문 생성 시각 + 재고예약 유효 시간)
         createdAt:
           type: string
           format: date-time
@@ -1712,7 +2253,12 @@ components:
           format: decimal
         itemStatus:
           type: string
-          enum: [PREPARING, SHIPPING, DELIVERED, CANCELLED]
+          enum: [ PREPARING, SHIPPING, DELIVERED, CANCELLED ]
+          description: |
+            - PREPARING: 상품 준비 중 (결제 완료 후 출고 전)
+            - SHIPPING: 배송 중 (물류사에 인계 완료)
+            - DELIVERED: 배송 완료 (고객 수령 완료)
+            - CANCELLED: 개별 상품 취소 (PREPARING 상태에서만 가능)
         createdAt:
           type: string
           format: date-time
@@ -1925,16 +2471,15 @@ components:
     ErrorResponse:
       type: object
       properties:
-        timestamp:
-          type: string
-          format: date-time
-        status:
-          type: integer
-        error:
-          type: string
+        success:
+          type: boolean
+          default: false
+        data:
+          type: object
+          nullable: true
         message:
           type: string
-        path:
+        errorCode:
           type: string
 
   responses:
@@ -1944,9 +2489,52 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            stockInsufficient:
+              summary: 재고 부족
+              value:
+                success: false
+                data: null
+                message: "재고가 부족합니다"
+                errorCode: "STOCK_INSUFFICIENT"
+            invalidParameter:
+              summary: 잘못된 파라미터
+              value:
+                success: false
+                data: null
+                message: "유효하지 않은 요청입니다"
+                errorCode: "INVALID_PARAMETER"
+
     NotFound:
       description: 리소스를 찾을 수 없음
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            message: "요청한 리소스를 찾을 수 없습니다"
+            errorCode: "RESOURCE_NOT_FOUND"
+
+    Conflict:
+      description: 리소스 충돌
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            couponExhausted:
+              summary: 쿠폰 소진
+              value:
+                success: false
+                data: null
+                message: "쿠폰이 모두 소진되었습니다"
+                errorCode: "COUPON_EXHAUSTED"
+            orderTimeout:
+              summary: 주문 타임아웃
+              value:
+                success: false
+                data: null
+                message: "주문 유효시간이 만료되었습니다"
+                errorCode: "ORDER_TIMEOUT"
