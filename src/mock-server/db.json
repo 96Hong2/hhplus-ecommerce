@@ -1,7 +1,7 @@
 {
   "products": [
     {
-      "id": 1,
+      "id": "1",
       "productName": "무선 블루투스 이어폰",
       "category": "전자제품",
       "description": "고음질 무선 이어폰",
@@ -11,7 +11,7 @@
       "updatedAt": "2025-01-01T00:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "productName": "스마트워치",
       "category": "전자제품",
       "description": "건강 관리 스마트워치",
@@ -21,7 +21,7 @@
       "updatedAt": "2025-01-02T00:00:00Z"
     },
     {
-      "id": 3,
+      "id": "3",
       "productName": "백팩",
       "category": "패션",
       "description": "캐주얼 백팩",
@@ -29,11 +29,31 @@
       "exposeFlag": true,
       "createdAt": "2025-01-03T00:00:00Z",
       "updatedAt": "2025-01-03T00:00:00Z"
+    },
+    {
+      "id": "7408",
+      "productName": "노트북",
+      "category": "전자제품",
+      "description": "고성능 노트북",
+      "imageUrl": "https://example.com/laptop.jpg",
+      "exposeFlag": true,
+      "createdAt": "2025-01-20T00:00:00Z",
+      "updatedAt": "2025-01-20T00:00:00Z"
+    },
+    {
+      "id": "3c94",
+      "productName": "바나나",
+      "category": "신선식품",
+      "description": "돌 바나나",
+      "imageUrl": "https://example.com/banana.jpg",
+      "exposeFlag": true,
+      "createdAt": "2025-11-01T00:00:00Z",
+      "updatedAt": "2025-11-01T00:00:00Z"
     }
   ],
   "productOptions": [
     {
-      "id": 1,
+      "id": "1",
       "productId": 1,
       "optionName": "색상-블랙",
       "optionPrice": 59000,
@@ -44,7 +64,7 @@
       "updatedAt": "2025-01-01T00:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "productId": 1,
       "optionName": "색상-화이트",
       "optionPrice": 59000,
@@ -55,7 +75,7 @@
       "updatedAt": "2025-01-01T00:00:00Z"
     },
     {
-      "id": 3,
+      "id": "3",
       "productId": 2,
       "optionName": "사이즈-M",
       "optionPrice": 299000,
@@ -68,7 +88,7 @@
   ],
   "users": [
     {
-      "id": 1,
+      "id": "1",
       "username": "홍길동",
       "pointBalance": 50000,
       "role": "CUSTOMER",
@@ -76,7 +96,7 @@
       "updatedAt": "2025-01-01T00:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "username": "김철수",
       "pointBalance": 100000,
       "role": "CUSTOMER",
@@ -84,7 +104,7 @@
       "updatedAt": "2025-01-02T00:00:00Z"
     },
     {
-      "id": 3,
+      "id": "3",
       "username": "관리자",
       "pointBalance": 0,
       "role": "ADMIN",
@@ -94,7 +114,7 @@
   ],
   "pointHistories": [
     {
-      "id": 1,
+      "id": "1",
       "userId": 1,
       "transactionType": "CHARGE",
       "amount": 50000,
@@ -104,7 +124,7 @@
       "createdAt": "2025-01-05T10:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "userId": 2,
       "transactionType": "CHARGE",
       "amount": 100000,
@@ -116,7 +136,7 @@
   ],
   "carts": [
     {
-      "id": 1,
+      "id": "1",
       "userId": 1,
       "productOptionId": 1,
       "quantity": 2,
@@ -124,7 +144,7 @@
       "updatedAt": "2025-01-10T09:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "userId": 1,
       "productOptionId": 3,
       "quantity": 1,
@@ -134,7 +154,7 @@
   ],
   "orders": [
     {
-      "id": 1,
+      "id": "1",
       "orderNumber": "ORD-20250115-0001",
       "userId": 1,
       "totalAmount": 118000,
@@ -147,7 +167,7 @@
       "updatedAt": "2025-01-15T14:05:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "orderNumber": "ORD-20250116-0001",
       "userId": 2,
       "totalAmount": 299000,
@@ -162,7 +182,7 @@
   ],
   "orderItems": [
     {
-      "id": 1,
+      "id": "1",
       "orderId": 1,
       "productId": 1,
       "productOptionId": 1,
@@ -176,7 +196,7 @@
       "updatedAt": "2025-01-15T14:30:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "orderId": 2,
       "productId": 2,
       "productOptionId": 3,
@@ -192,7 +212,7 @@
   ],
   "coupons": [
     {
-      "id": 1,
+      "id": "1",
       "couponName": "신규가입 10% 할인",
       "discountType": "PERCENTAGE",
       "discountValue": 10,
@@ -206,7 +226,7 @@
       "updatedAt": "2025-01-15T14:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "couponName": "5000원 할인 쿠폰",
       "discountType": "FIXED",
       "discountValue": 5000,
@@ -222,7 +242,7 @@
   ],
   "userCoupons": [
     {
-      "id": 1,
+      "id": "1",
       "userId": 1,
       "couponId": 1,
       "isUsed": true,
@@ -231,7 +251,7 @@
       "issuedAt": "2025-01-10T00:00:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "userId": 2,
       "couponId": 2,
       "isUsed": false,
@@ -242,7 +262,7 @@
   ],
   "integrationLogs": [
     {
-      "id": 1,
+      "id": "1",
       "orderId": 1,
       "integrationType": "LOGISTICS",
       "isSuccess": true,
@@ -252,7 +272,7 @@
       "updatedAt": "2025-01-15T14:10:00Z"
     },
     {
-      "id": 2,
+      "id": "2",
       "orderId": 1,
       "integrationType": "ERP",
       "isSuccess": false,
