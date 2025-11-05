@@ -1,5 +1,6 @@
 package hhplus.ecommerce.common.presentation.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 
 /**
@@ -7,6 +8,7 @@ import lombok.Getter;
  * 성공/실패 여부, 데이터, 메시지, 에러코드를 포함
  */
 @Getter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     private final boolean success;
     private final T data;

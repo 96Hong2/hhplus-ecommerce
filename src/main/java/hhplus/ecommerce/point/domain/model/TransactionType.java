@@ -1,12 +1,12 @@
-package hhplus.ecommerce.domain.model.user;
+package hhplus.ecommerce.point.domain.model;
 
-public enum UserRole {
-    CUSTOMER("고객"),
-    ADMIN("관리자");
+public enum TransactionType {
+    CHARGE("충전"),
+    USE("사용");
 
     private final String description;
 
-    UserRole(String description) {
+    TransactionType(String description) {
         this.description = description;
     }
 
