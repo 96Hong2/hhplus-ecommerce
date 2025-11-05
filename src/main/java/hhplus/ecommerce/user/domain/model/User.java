@@ -1,14 +1,18 @@
-package hhplus.ecommerce.domain.model.user;
+package hhplus.ecommerce.user.domain.model;
+
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Getter
 public class User {
-    private Long userId;
+    // Getter
+    private final Long userId;
     private String username;
     private BigDecimal pointBalance;
-    private UserRole role;
-    private LocalDateTime createdAt;
+    private final UserRole role;
+    private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     // 생성자
@@ -51,28 +55,4 @@ public class User {
         }
     }
 
-    // Getter
-    public Long getUserId() {
-        return userId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public BigDecimal getPointBalance() {
-        return pointBalance;
-    }
-
-    public UserRole getRole() {
-        return role;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
 }

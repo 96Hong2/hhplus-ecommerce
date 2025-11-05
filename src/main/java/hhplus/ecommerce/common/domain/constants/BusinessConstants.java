@@ -1,12 +1,14 @@
 package hhplus.ecommerce.common.domain.constants;
 
+import java.math.BigDecimal;
+
 /**
  * 비즈니스 상수 정의
  * 최소 충전 금액, 재고 예약 타임아웃 등 전역 상수 관리
  */
 public class BusinessConstants {
     // 포인트 관련
-    public static final Long MIN_CHARGE_AMOUNT = 1000L; // 최소 충전 금액
+    public static final BigDecimal MIN_CHARGE_AMOUNT = BigDecimal.valueOf(1000L); // 최소 충전 금액
 
     // 재고 관련
     public static final int STOCK_RESERVATION_TIMEOUT_MINUTES = 15; // 재고 예약 타임아웃
