@@ -1,0 +1,183 @@
+package hhplus.ecommerce.order.domain.model;
+
+import hhplus.ecommerce.common.domain.constants.BusinessConstants;
+import hhplus.ecommerce.common.domain.exception.OrderException;
+import lombok.Getter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicLong;
+
+@Getter
+public class Order {
+    private final Long orderId;
+    private final String orderNumber;
+    private final Long userId;
+    private final BigDecimal totalAmount;
+    private final BigDecimal discountAmount;
+    private final BigDecimal finalAmount;
+    private final BigDecimal usedPoints;
+    private final Long couponId;
+    private final OrderStatus orderStatus;
+    private final LocalDateTime createdAt;
+    private final LocalDateTime updatedAt;
+    private final LocalDateTime expiresAt;
+
+    private static AtomicLong sequence = new AtomicLong(1);
+
+    public Order(Long orderId, String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
+                 BigDecimal finalAmount, BigDecimal usedPoints, Long couponId, OrderStatus orderStatus,
+                 LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime expiresAt) {
+        this.orderId = orderId;
+        this.orderNumber = orderNumber;
+        this.userId = userId;
+        this.totalAmount = totalAmount;
+        this.discountAmount = discountAmount;
+        this.finalAmount = finalAmount;
+        this.usedPoints = usedPoints;
+        this.couponId = couponId;
+        this.orderStatus = orderStatus;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.expiresAt = expiresAt;
+    }
+
+    public Order(Long orderId, String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
+                 BigDecimal finalAmount, Long couponId, OrderStatus orderStatus, LocalDateTime expiresAt) {
+        this(orderId, orderNumber, userId, totalAmount, discountAmount, finalAmount, BigDecimal.ZERO,
+             couponId, orderStatus, null, null, expiresAt);
+    }
+
+    public static Order create(String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
+                               BigDecimal usedPoints, Long couponId) {
+        if (orderNumber == null || orderNumber.isEmpty()) {
+            throw OrderException.orderCreationFailed("주문번호는 필수값입니다.");
+        }
+
+        if (userId == null) {
+            throw OrderException.orderCreationFailed("유저ID는 필수값입니다.");
+        }
+
+        if (totalAmount == null || totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw OrderException.orderCreationFailed("총 합계값이 유효하지 않습니다. : " + totalAmount);
+        }
+
+        BigDecimal validDiscountAmount = (discountAmount != null) ? discountAmount : BigDecimal.ZERO;
+        BigDecimal validUsedPoints = (usedPoints != null) ? usedPoints : BigDecimal.ZERO;
+
+        if (validDiscountAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw OrderException.orderCreationFailed("할인 금액은 0원 이상이어야 합니다. : " + discountAmount);
+        }
+
+        if (validUsedPoints.compareTo(BigDecimal.ZERO) < 0) {
+            throw OrderException.orderCreationFailed("사용 포인트는 0원 이상이어야 합니다. : " + usedPoints);
+        }
+
+        BigDecimal finalAmount = totalAmount.subtract(validDiscountAmount);
+
+        if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw OrderException.orderCreationFailed("최종 결제 금액이 0원 미만입니다.");
+        }
+
+        // 주문 생성 후 15분 타임아웃 설정
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = now.plusMinutes(BusinessConstants.STOCK_RESERVATION_TIMEOUT_MINUTES);
+
+        return new Order(
+                sequence.incrementAndGet(),
+                orderNumber,
+                userId,
+                totalAmount,
+                validDiscountAmount,
+                finalAmount,
+                validUsedPoints,
+                couponId,
+                OrderStatus.PENDING,
+                now,
+                now,
+                expiresAt
+        );
+    }
+
+    // 주문 상태 변경
+    public Order updateStatus(OrderStatus newStatus) {
+        if (newStatus == null) {
+            throw new IllegalArgumentException("주문 상태는 필수입니다.");
+        }
+
+        // 동일한 상태로 변경 시도 시 예외 발생
+        if (this.orderStatus == newStatus) {
+            throw OrderException.invalidOrderStatus(this.orderStatus.name(), newStatus.name());
+        }
+
+        return new Order(
+                this.orderId,
+                this.orderNumber,
+                this.userId,
+                this.totalAmount,
+                this.discountAmount,
+                this.finalAmount,
+                this.usedPoints,
+                this.couponId,
+                newStatus,
+                this.createdAt,
+                LocalDateTime.now(),
+                this.expiresAt
+        );
+    }
+
+    // 결제 완료 처리
+    public Order pay() {
+        if (this.orderStatus == OrderStatus.PAID) {
+            throw OrderException.orderAlreadyPaid(this.orderId);
+        }
+
+        if (this.orderStatus == OrderStatus.CANCELLED) {
+            throw OrderException.orderAlreadyCancelled(this.orderId);
+        }
+
+        if (!this.orderStatus.equals(OrderStatus.PENDING)) {
+            throw OrderException.invalidOrderStatus(this.orderStatus.name(), OrderStatus.PAID.name());
+        }
+
+        // 만료된 주문
+        if (isExpired()) {
+            throw OrderException.orderTimeout(this.orderId);
+        }
+
+        return updateStatus(OrderStatus.PAID);
+    }
+
+    // 주문 취소 처리
+    public Order cancel() {
+        if (this.orderStatus == OrderStatus.CANCELLED) {
+            throw OrderException.orderAlreadyCancelled(this.orderId);
+        }
+
+        if (!this.orderStatus.equals(OrderStatus.PENDING)) {
+            throw OrderException.orderCancelNotAllowed(this.orderId, this.orderStatus.name());
+        }
+
+        return updateStatus(OrderStatus.CANCELLED);
+    }
+
+    public boolean isExpired() {
+        return LocalDateTime.now().isAfter(this.expiresAt);
+    }
+
+    public boolean canPayment() {
+        return this.orderStatus == OrderStatus.PENDING && !isExpired();
+    }
+
+    public boolean isPending() {
+        return this.orderStatus == OrderStatus.PENDING;
+    }
+
+    public boolean isPaid() {
+        return this.orderStatus == OrderStatus.PAID;
+    }
+
+    public boolean isCancelled() {
+        return this.orderStatus == OrderStatus.CANCELLED;
+    }
+}
