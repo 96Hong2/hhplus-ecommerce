@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Repository
 public class InMemoryPointHistoryRepository implements PointHistoryRepository {
@@ -94,5 +95,20 @@ public class InMemoryPointHistoryRepository implements PointHistoryRepository {
                 .filter(pointHistory -> pointHistory.getUserId().equals(userId))
                 .filter(pointHistory -> (pointHistory.getTransactionType() == transactionType))
                 .count();
+    }
+
+    // 테스트를 위해 추가된 메서드
+    @Override
+    public Optional<PointHistory> findById(Long pointHistoryId) {
+        return pointHistoryStorage.stream()
+                .filter(pointHistory -> pointHistory.getPointHistoryId().equals(pointHistoryId))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<PointHistory> findByOrderId(Long orderId) {
+        return pointHistoryStorage.stream()
+                .filter(pointHistory -> orderId.equals(pointHistory.getOrderId()))
+                .findFirst();
     }
 }

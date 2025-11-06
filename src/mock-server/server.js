@@ -219,7 +219,7 @@ server.post('/api/order/:userId', (req, res) => {
       .find({ id: String(productOption.productId) })
       .value();
 
-    const subtotal = productOption.optionPrice * item.quantity;
+    const subtotal = productOption.priceAdjustment * item.quantity;
     totalAmount += subtotal;
 
     orderItemsData.push({
@@ -227,7 +227,7 @@ server.post('/api/order/:userId', (req, res) => {
       productOptionId: item.productOptionId,
       productName: product.productName,
       optionName: productOption.optionName,
-      productPrice: productOption.optionPrice,
+      productPrice: productOption.priceAdjustment,
       quantity: item.quantity,
       subtotal: subtotal
     });
