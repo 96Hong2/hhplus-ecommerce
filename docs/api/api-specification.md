@@ -134,7 +134,7 @@
       {
         "productOptionId": 1,
         "optionName": "사이즈-M",
-        "optionPrice": 10000,
+        "priceAdjustment": 10000,
         "soldOutFlag": false
       }
     ]
@@ -325,7 +325,7 @@
       "cartId": 1,
       "productName": "상품명",
       "optionName": "사이즈-M",
-      "optionPrice": 10000,
+      "priceAdjustment": 10000,
       "quantity": 2,
       "subtotal": 20000
     }
@@ -464,7 +464,7 @@
 
 #### 결제
 
-`POST /api/order/{orderId}/payment`
+`POST /api/payment/{orderId}/`
 
 ```json
 {
@@ -694,11 +694,10 @@ public class ErrorCodes {
 
     // ========== 유저 (U) ==========
     public static final String USER_NOT_FOUND = "U001";
-    public static final String DUPLICATE_USERNAME = "U002";
-    public static final String INVALID_USER_ROLE = "U003";
-    public static final String USER_CREATION_FAILED = "U004";
-    public static final String USER_AUTHENTICATION_FAILED = "U005";
-    public static final String USER_AUTHORIZATION_FAILED = "U006";
+    public static final String USER_CREATION_FAILED = "U002";
+    public static final String USER_GET_LIST_FAILED = "U003";
+    public static final String USER_AUTHENTICATION_FAILED = "U004";
+    public static final String USER_AUTHORIZATION_FAILED = "U005";
 
     // ========== 포인트 (PT) ==========
     public static final String INSUFFICIENT_POINT_BALANCE = "PT001";
@@ -706,9 +705,7 @@ public class ErrorCodes {
     public static final String POINT_HISTORY_NOT_FOUND = "PT003";
     public static final String POINT_CHARGE_FAILED = "PT004";
     public static final String POINT_USE_FAILED = "PT005";
-    public static final String INVALID_POINT_TRANSACTION_TYPE = "PT006";
-    public static final String POINT_CONCURRENCY_ERROR = "PT007";
-    public static final String POINT_MINIMUM_CHARGE_NOT_MET = "PT008";
+    public static final String POINT_CONCURRENCY_ERROR = "PT006";
 
     // ========== 장바구니 (C) ==========
     public static final String CART_ITEM_NOT_FOUND = "C001";
