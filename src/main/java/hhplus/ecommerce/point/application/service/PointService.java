@@ -1,6 +1,5 @@
 package hhplus.ecommerce.point.application.service;
 
-import hhplus.ecommerce.common.application.util.IdGenerator;
 import hhplus.ecommerce.common.domain.constants.BusinessConstants;
 import hhplus.ecommerce.common.domain.exception.PointException;
 import hhplus.ecommerce.point.domain.model.PointHistory;
@@ -22,7 +21,6 @@ public class PointService {
 
     private final PointHistoryRepository pointHistoryRepository;
     private final UserRepository userRepository;
-    private final IdGenerator idGenerator;
 
     // 사용자별 락 관리 (동시성 제어)
     ConcurrentHashMap<Long, ReentrantLock> userLockMap = new ConcurrentHashMap<>();
@@ -55,7 +53,7 @@ public class PointService {
             userRepository.save(user);
 
             // 포인트 충전 내역 저장
-            PointHistory history = new PointHistory(idGenerator.generateId(), userId, amount, newBalance, description);
+            PointHistory history = new PointHistory(null, userId, amount, newBalance, description);
             return pointHistoryRepository.save(history);
 
         } catch (Exception e) {
@@ -93,8 +91,12 @@ public class PointService {
                 throw PointException.insufficientPointBalance(userId, amount, balance);
             }
 
+            // 포인트 사용
+            user.usePoint(amount);
+            userRepository.save(user);
+
             // 포인트 사용 내역 저장
-            PointHistory history = new PointHistory(idGenerator.generateId(), userId, amount, balance.subtract(amount), orderId, description);
+            PointHistory history = new PointHistory(null, userId, amount, balance.subtract(amount), orderId, description);
             return pointHistoryRepository.save(history);
 
         } catch (Exception e) {

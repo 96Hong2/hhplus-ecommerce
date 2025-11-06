@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 import hhplus.ecommerce.common.presentation.response.ApiResponse;
-import hhplus.ecommerce.point.application.service.PointMapper;
-import hhplus.ecommerce.point.application.service.PointService;
 import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
 import hhplus.ecommerce.point.presentation.dto.*;
