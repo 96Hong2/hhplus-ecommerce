@@ -1,4 +1,4 @@
-package hhplus.ecommerce.unitTest.domain.model.user;
+package hhplus.ecommerce.unitTest.point.domain;
 
 import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;

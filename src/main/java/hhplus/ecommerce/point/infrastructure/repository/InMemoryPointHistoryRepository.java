@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Repository
@@ -14,9 +15,26 @@ public class InMemoryPointHistoryRepository implements PointHistoryRepository {
 
     // CopyOnWriteArrayList : 읽기 작업 시 락 없이 동시 접근이 가능하며, 쓰기 시에만 락 걸고 배열을 복사
     private final CopyOnWriteArrayList<PointHistory> pointHistoryStorage = new CopyOnWriteArrayList<>();
+    private final AtomicLong sequence = new AtomicLong(1); // PointHistory 전용 시퀀스
 
     @Override
     public PointHistory save(PointHistory pointHistory) {
+        Long id = pointHistory.getPointHistoryId();
+
+        if (id == null) {
+            id = sequence.getAndIncrement();
+            PointHistory newHistory = new PointHistory(
+                    id,
+                    pointHistory.getUserId(),
+                    pointHistory.getAmount(),
+                    pointHistory.getBalanceAfter(),
+                    pointHistory.getOrderId(),
+                    pointHistory.getDescription()
+            );
+            pointHistoryStorage.add(newHistory);
+            return newHistory;
+        }
+
         pointHistoryStorage.add(pointHistory);
         return pointHistory;
     }
