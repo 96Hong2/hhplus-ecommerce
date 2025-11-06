@@ -23,11 +23,10 @@ public class ErrorCode {
 
     // ========== 유저 (U) ==========
     public static final String USER_NOT_FOUND = "U001";
-    public static final String DUPLICATE_USERNAME = "U002";
-    public static final String INVALID_USER_ROLE = "U003";
-    public static final String USER_CREATION_FAILED = "U004";
-    public static final String USER_AUTHENTICATION_FAILED = "U005";
-    public static final String USER_AUTHORIZATION_FAILED = "U006";
+    public static final String USER_CREATION_FAILED = "U002";
+    public static final String USER_GET_LIST_FAILED = "U003";
+    public static final String USER_AUTHENTICATION_FAILED = "U004";
+    public static final String USER_AUTHORIZATION_FAILED = "U005";
 
     // ========== 포인트 (PT) ==========
     public static final String INSUFFICIENT_POINT_BALANCE = "PT001";
