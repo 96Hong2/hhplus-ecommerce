@@ -9,6 +9,7 @@ public class ErrorCode {
     public static final String PRODUCT_OPTION_SOLD_OUT = "P005";
     public static final String INVALID_PRODUCT_CATEGORY = "P006";
     public static final String PRODUCT_CREATION_FAILED = "P007";
+    public static final String PRODUCT_GET_LIST_FAILED = "P008";
 
     // ========== 재고 (S) ==========
     public static final String STOCK_NOT_FOUND = "S001";
@@ -16,10 +17,7 @@ public class ErrorCode {
     public static final String INVALID_STOCK_AMOUNT = "S003";
     public static final String STOCK_UPDATE_UNAUTHORIZED = "S004";
     public static final String STOCK_CONCURRENCY_CONFLICT = "S005";
-    public static final String STOCK_RESERVATION_NOT_FOUND = "S006";
-    public static final String STOCK_RESERVATION_EXPIRED = "S007";
-    public static final String STOCK_RESERVATION_ALREADY_CONFIRMED = "S008";
-    public static final String STOCK_RESERVATION_ALREADY_RELEASED = "S009";
+    public static final String STOCK_RESERVATION_FAILED = "S006";
 
     // ========== 유저 (U) ==========
     public static final String USER_NOT_FOUND = "U001";
@@ -72,6 +70,7 @@ public class ErrorCode {
     public static final String COUPON_ISSUE_FAILED = "CP009";
     public static final String COUPON_ISSUE_RACE_FAILED = "CP010";
     public static final String COUPON_NOT_VALID_YET = "CP011";
+    public static final String COUPON_CREATE_FAILED = "CP012";
 
     // ========== 외부연동 (I) ==========
     public static final String INTEGRATION_FAILED = "I001";
