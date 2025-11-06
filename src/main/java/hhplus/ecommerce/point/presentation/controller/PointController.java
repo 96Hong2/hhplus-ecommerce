@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import hhplus.ecommerce.common.presentation.response.ApiResponse;
 import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
-import hhplus.ecommerce.point.presentation.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
