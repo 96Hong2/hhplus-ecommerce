@@ -1752,7 +1752,7 @@ components:
       required:
         - productId
         - optionName
-        - optionPrice
+        - priceAdjustment
         - stockQuantity
       properties:
         productId:
@@ -1762,7 +1762,7 @@ components:
           type: string
           maxLength: 100
           description: 예) 사이즈-M, 색상-레드
-        optionPrice:
+        priceAdjustment:
           type: number
           format: decimal
           minimum: 0
@@ -1782,7 +1782,7 @@ components:
         optionName:
           type: string
           maxLength: 100
-        optionPrice:
+        priceAdjustment:
           type: number
           format: decimal
         stockQuantity:
@@ -1803,7 +1803,7 @@ components:
           format: int64
         optionName:
           type: string
-        optionPrice:
+        priceAdjustment:
           type: number
           format: decimal
         stockQuantity:
@@ -2085,7 +2085,7 @@ components:
           type: string
         optionName:
           type: string
-        optionPrice:
+        priceAdjustment:
           type: number
           format: decimal
         quantity:
