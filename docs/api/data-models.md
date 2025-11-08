@@ -119,7 +119,7 @@ option_name VARCHAR(100) [not null, note: '옵션명 (예: 사이즈-M, 색상-�
 option_price DECIMAL(15,2) [not null, note: '옵션 가격 (추가 금액 포함)']
 stock_quantity INT [not null, default: 0, note: '재고 수량']
 sold_out_flag TINYINT(1) [not null, default: 0, note: '품절 여부 (1: 품절, 0: 판매중)']
-expose_flag TINYINT(1) [not null, default: 1, note: '옵션 노출 여부 (1: 노출, 0: 비노출)']
+is_exposed TINYINT(1) [not null, default: 1, note: '옵션 노출 여부 (1: 노출, 0: 비노출)']
 created_at DATETIME [not null, default: `CURRENT_TIMESTAMP`, note: '생성일시']
 updated_at DATETIME [not null, default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`, note: '수정일시']
 
@@ -135,6 +135,8 @@ Table stock_histories {
 stock_history_id BIGINT [pk, increment, note: '재고 이력 고유 ID']
 product_option_id BIGINT [not null, ref: > product_options.product_option_id, note: '상품 옵션 ID']
 amount INT [not null, note: '수량 (양수: 추가, 음수: 감소)']
+balance INT [not null, note: '총 수량']
+description VARCHAR(200) [note: '설명']
 updated_by BIGINT [not null, ref: > users.user_id, note: '수정자 ID']
 created_at DATETIME [not null, default: `CURRENT_TIMESTAMP`, note: '업데이트 일시']
 
