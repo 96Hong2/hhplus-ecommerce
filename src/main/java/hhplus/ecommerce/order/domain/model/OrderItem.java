@@ -14,16 +14,16 @@ public class OrderItem {
     private final Long productOptionId;
     private final String productName;
     private final String optionName;
-    private final BigDecimal productPrice;
+    private final BigDecimal unitPrice;
     private final int quantity;
     private final BigDecimal subtotal;
     private final OrderItemStatus itemStatus;
 
     // 모든 필드를 받는 생성자 (불변 객체 생성용)
     public OrderItem(Long orderItemId, Long orderId, Long productId, Long productOptionId,
-                     String productName, String optionName, BigDecimal productPrice,
+                     String productName, String optionName, BigDecimal unitPrice,
                      int quantity, BigDecimal subtotal, OrderItemStatus itemStatus) {
-        validateOrderItem(orderId, productId, productOptionId, productName, optionName, productPrice, quantity);
+        validateOrderItem(orderId, productId, productOptionId, productName, optionName, unitPrice, quantity);
 
         this.orderItemId = orderItemId;
         this.orderId = orderId;
@@ -31,7 +31,7 @@ public class OrderItem {
         this.productOptionId = productOptionId;
         this.productName = productName;
         this.optionName = optionName;
-        this.productPrice = productPrice;
+        this.unitPrice = unitPrice;
         this.quantity = quantity;
         this.subtotal = subtotal;
         this.itemStatus = itemStatus;
@@ -39,15 +39,50 @@ public class OrderItem {
 
     // 주문 항목 생성 시 사용하는 간편 생성자 (초기 상태는 PREPARING)
     public OrderItem(Long orderId, Long productId, Long productOptionId,
-                     String productName, String optionName, BigDecimal productPrice, int quantity) {
-        this(null, orderId, productId, productOptionId, productName, optionName, productPrice,
-             quantity, productPrice.multiply(BigDecimal.valueOf(quantity)), OrderItemStatus.PREPARING);
+                     String productName, String optionName, BigDecimal unitPrice, int quantity) {
+        this(null, orderId, productId, productOptionId, productName, optionName, unitPrice,
+             quantity, calculateSubtotal(unitPrice, quantity), OrderItemStatus.PREPARING);
+    }
+
+    /**
+     * 주문 아이템 생성 팩토리 메서드
+     * @param orderId 주문 ID
+     * @param productId 상품 ID
+     * @param productOptionId 상품 옵션 ID
+     * @param productName 상품명
+     * @param optionName 옵션명
+     * @param unitPrice 단가
+     * @param quantity 수량
+     * @return 생성된 OrderItem
+     */
+    public static OrderItem create(Long orderId, Long productId, Long productOptionId,
+                                  String productName, String optionName,
+                                  BigDecimal unitPrice, int quantity) {
+        return new OrderItem(orderId, productId, productOptionId, productName, optionName, unitPrice, quantity);
+    }
+
+
+    /**
+     * subtotal 계산 (단가 * 수량)
+     */
+    private static BigDecimal calculateSubtotal(BigDecimal unitPrice, int quantity) {
+        if (unitPrice == null) {
+            throw new IllegalArgumentException("단가는 필수입니다");
+        }
+        return unitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    /**
+     * subtotal 조회 (현재 객체의 subtotal)
+     */
+    public BigDecimal getSubtotal() {
+        return this.subtotal;
     }
 
     // 주문 항목 생성 시 필수 필드 검증
     private void validateOrderItem(Long orderId, Long productId, Long productOptionId,
                                    String productName, String optionName,
-                                   BigDecimal productPrice, int quantity) {
+                                   BigDecimal unitPrice, int quantity) {
         if (orderId == null) {
             throw OrderException.orderCreationFailed("주문 ID는 필수입니다");
         }
@@ -63,7 +98,7 @@ public class OrderItem {
         if (optionName == null || optionName.trim().isEmpty()) {
             throw OrderException.orderCreationFailed("옵션명은 필수입니다");
         }
-        if (productPrice == null || productPrice.compareTo(BigDecimal.ZERO) < 0) {
+        if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) < 0) {
             throw OrderException.orderCreationFailed("상품 가격은 0 이상이어야 합니다");
         }
         if (quantity <= 0) {
@@ -97,7 +132,7 @@ public class OrderItem {
             this.productOptionId,
             this.productName,
             this.optionName,
-            this.productPrice,
+            this.unitPrice,
             this.quantity,
             this.subtotal,
             newStatus

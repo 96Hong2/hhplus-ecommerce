@@ -1,10 +1,9 @@
 package hhplus.ecommerce.order.application.usecase;
 
-import hhplus.ecommerce.common.domain.exception.OrderException;
+import hhplus.ecommerce.order.application.dto.OrderDetailInfo;
+import hhplus.ecommerce.order.application.service.OrderService;
 import hhplus.ecommerce.order.domain.model.Order;
 import hhplus.ecommerce.order.domain.model.OrderItem;
-import hhplus.ecommerce.order.domain.repository.OrderItemRepository;
-import hhplus.ecommerce.order.domain.repository.OrderRepository;
 import hhplus.ecommerce.order.presentation.dto.response.OrderDetailResponse;
 import hhplus.ecommerce.order.presentation.dto.response.OrderItemResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,42 +16,52 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GetOrderDetailUseCase {
 
-    private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
+    private final OrderService orderService;
 
     /**
-     * 주문 상세 조회 UseCase
+     * 주문 상세 조회 UseCase - 전체 흐름을 제어
+     * 1. 주문 조회 (Service)
+     * 2. 주문 아이템 조회 (Service)
+     * 3. Application DTO로 변환 (Service)
+     * 4. Presentation DTO로 변환 (UseCase)
      */
     public OrderDetailResponse execute(Long orderId) {
-        // 주문 조회
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> OrderException.orderNotFound(orderId));
+        // 1. 주문 조회
+        Order order = orderService.getOrder(orderId);
 
-        // 주문 아이템 목록 조회
-        List<OrderItem> orderItems = orderItemRepository.findAllByOrderId(orderId);
+        // 2. 주문 아이템 조회
+        List<OrderItem> orderItems = orderService.getOrderItems(orderId);
 
-        List<OrderItemResponse> itemResponses = orderItems.stream()
+        // 3. Application DTO로 변환
+        OrderDetailInfo orderDetailInfo = orderService.toOrderDetailInfo(order, orderItems);
+
+        // 4. Presentation DTO로 변환
+        return toOrderDetailResponse(orderDetailInfo);
+    }
+
+    private OrderDetailResponse toOrderDetailResponse(OrderDetailInfo info) {
+        List<OrderItemResponse> itemResponses = info.getOrderItems().stream()
                 .map(item -> new OrderItemResponse(
                         item.getOrderItemId(),
                         item.getProductName(),
                         item.getOptionName(),
                         item.getQuantity(),
-                        item.getProductPrice().longValue(),
+                        item.getUnitPrice().longValue(),
                         item.getItemStatus()
                 ))
                 .collect(Collectors.toList());
 
         return new OrderDetailResponse(
-                order.getOrderId(),
-                order.getOrderNumber(),
-                order.getOrderStatus(),
-                order.getTotalAmount().longValue(),
-                order.getDiscountAmount().longValue(),
-                order.getFinalAmount().longValue(),
-                order.getUsedPoints().longValue(),
+                info.getOrderId(),
+                info.getOrderNumber(),
+                info.getOrderStatus(),
+                info.getTotalAmount().longValue(),
+                info.getDiscountAmount().longValue(),
+                info.getFinalAmount().longValue(),
+                info.getUsedPoints().longValue(),
                 itemResponses,
-                order.getCreatedAt(),
-                order.getExpiresAt()
+                info.getCreatedAt(),
+                info.getExpiresAt()
         );
     }
 }

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.presentation.dto.response.PointHistoryResponse;
-// claude review : PointBalanceResponse 변환을 위해 User import 추가
 import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.point.presentation.dto.response.PointBalanceResponse;
 import java.util.List;
@@ -48,7 +47,6 @@ public class PointMapper {
                 .collect(Collectors.toList());
     }
 
-    // claude review : PointBalanceResponse 변환 메서드 추가
     public PointBalanceResponse toPointBalanceResponse(User user) {
         return new PointBalanceResponse(
                 user.getUserId(),

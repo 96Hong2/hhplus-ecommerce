@@ -4,7 +4,6 @@ import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
 
 import java.util.List;
-// claude review : findById, findByOrderId를 위해 Optional import 추가
 import java.util.Optional;
 
 public interface PointHistoryRepository {
@@ -44,7 +43,6 @@ public interface PointHistoryRepository {
      * */
     long countByUserIdAndTransactionType(Long userId, TransactionType transactionType);
 
-    // claude review : 테스트를 위해 추가된 메서드
     /**
      * ID로 포인트 거래 내역을 조회한다.
      * */

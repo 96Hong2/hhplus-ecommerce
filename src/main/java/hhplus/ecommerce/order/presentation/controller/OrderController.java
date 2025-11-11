@@ -2,7 +2,7 @@ package hhplus.ecommerce.order.presentation.controller;
 
 import hhplus.ecommerce.common.presentation.response.ApiResponse;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
-import hhplus.ecommerce.order.application.service.OrderService;
+import hhplus.ecommerce.order.application.usecase.*;
 import hhplus.ecommerce.order.domain.model.OrderStatus;
 import hhplus.ecommerce.order.presentation.dto.request.OrderCreateRequest;
 import hhplus.ecommerce.order.presentation.dto.request.OrderItemStatusChangeRequest;
@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/order")
 public class OrderController {
 
-    private final OrderService orderService;
+    private final CreateOrderUseCase createOrderUseCase;
+    private final GetOrderListUseCase getOrderListUseCase;
+    private final GetOrderDetailUseCase getOrderDetailUseCase;
+    private final ChangeOrderStatusUseCase changeOrderStatusUseCase;
+    private final ChangeOrderItemStatusUseCase changeOrderItemStatusUseCase;
 
     /**
      * 주문 생성
@@ -31,7 +35,7 @@ public class OrderController {
     public ApiResponse<OrderCreateResponse> createOrder(
             @PathVariable Long userId,
             @RequestBody OrderCreateRequest request) {
-        OrderCreateResponse response = orderService.createOrder(userId, request);
+        OrderCreateResponse response = createOrderUseCase.execute(userId, request);
         return ApiResponse.success(response);
     }
 
@@ -49,7 +53,7 @@ public class OrderController {
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return orderService.getOrderList(userId, status, page, size);
+        return getOrderListUseCase.execute(userId, status, page, size);
     }
 
     /**
@@ -59,7 +63,7 @@ public class OrderController {
      */
     @GetMapping("/detail/{orderId}")
     public ApiResponse<OrderDetailResponse> getOrderDetail(@PathVariable Long orderId) {
-        OrderDetailResponse response = orderService.getOrderDetail(orderId);
+        OrderDetailResponse response = getOrderDetailUseCase.execute(orderId);
         return ApiResponse.success(response);
     }
 
@@ -73,7 +77,7 @@ public class OrderController {
     public ApiResponse<OrderDetailResponse> changeOrderStatus(
             @PathVariable Long userId,
             @RequestBody OrderStatusChangeRequest request) {
-        OrderDetailResponse response = orderService.changeOrderStatus(userId, request);
+        OrderDetailResponse response = changeOrderStatusUseCase.execute(userId, request);
         return ApiResponse.success(response);
     }
 
@@ -87,7 +91,7 @@ public class OrderController {
     public ApiResponse<OrderItemResponse> changeOrderItemStatus(
             @PathVariable Long orderItemId,
             @RequestBody OrderItemStatusChangeRequest request) {
-        OrderItemResponse response = orderService.changeOrderItemStatus(orderItemId, request);
+        OrderItemResponse response = changeOrderItemStatusUseCase.execute(orderItemId, request);
         return ApiResponse.success(response);
     }
 

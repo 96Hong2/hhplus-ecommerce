@@ -24,6 +24,7 @@ public class Order {
     private final LocalDateTime expiresAt;
 
     private static AtomicLong sequence = new AtomicLong(1);
+    private static final String ORDER_NUMBER_PREFIX = "ORD";
 
     public Order(Long orderId, String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
                  BigDecimal finalAmount, BigDecimal usedPoints, Long couponId, OrderStatus orderStatus,
@@ -50,6 +51,35 @@ public class Order {
 
     public static Order create(String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
                                BigDecimal usedPoints, Long couponId) {
+        validateOrderCreation(orderNumber, userId, totalAmount, discountAmount, usedPoints);
+
+        BigDecimal validDiscountAmount = (discountAmount != null) ? discountAmount : BigDecimal.ZERO;
+        BigDecimal validUsedPoints = (usedPoints != null) ? usedPoints : BigDecimal.ZERO;
+
+        BigDecimal finalAmount = calculateFinalAmount(totalAmount, validDiscountAmount, validUsedPoints);
+
+        // 주문 생성 후 15분 타임아웃 설정
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiresAt = now.plusMinutes(BusinessConstants.STOCK_RESERVATION_TIMEOUT_MINUTES);
+
+        return new Order(
+                sequence.incrementAndGet(),
+                orderNumber,
+                userId,
+                totalAmount,
+                validDiscountAmount,
+                finalAmount,
+                validUsedPoints,
+                couponId,
+                OrderStatus.PENDING,
+                now,
+                now,
+                expiresAt
+        );
+    }
+
+    private static void validateOrderCreation(String orderNumber, Long userId, BigDecimal totalAmount,
+                                             BigDecimal discountAmount, BigDecimal usedPoints) {
         if (orderNumber == null || orderNumber.isEmpty()) {
             throw OrderException.orderCreationFailed("주문번호는 필수값입니다.");
         }
@@ -72,31 +102,22 @@ public class Order {
         if (validUsedPoints.compareTo(BigDecimal.ZERO) < 0) {
             throw OrderException.orderCreationFailed("사용 포인트는 0원 이상이어야 합니다. : " + usedPoints);
         }
+    }
 
-        BigDecimal finalAmount = totalAmount.subtract(validDiscountAmount);
+    private static BigDecimal calculateFinalAmount(BigDecimal totalAmount, BigDecimal discountAmount, BigDecimal usedPoints) {
+        BigDecimal validUsedPoints = (usedPoints != null) ? usedPoints : BigDecimal.ZERO;
+        BigDecimal finalAmount = totalAmount.subtract(discountAmount).subtract(validUsedPoints);
 
         if (finalAmount.compareTo(BigDecimal.ZERO) < 0) {
             throw OrderException.orderCreationFailed("최종 결제 금액이 0원 미만입니다.");
         }
 
-        // 주문 생성 후 15분 타임아웃 설정
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiresAt = now.plusMinutes(BusinessConstants.STOCK_RESERVATION_TIMEOUT_MINUTES);
+        return finalAmount;
+    }
 
-        return new Order(
-                sequence.incrementAndGet(),
-                orderNumber,
-                userId,
-                totalAmount,
-                validDiscountAmount,
-                finalAmount,
-                validUsedPoints,
-                couponId,
-                OrderStatus.PENDING,
-                now,
-                now,
-                expiresAt
-        );
+    // orderNumber 생성
+    public static String generateOrderNumber() {
+        return ORDER_NUMBER_PREFIX + sequence.get() + "-" + LocalDateTime.now();
     }
 
     // 주문 상태 변경
