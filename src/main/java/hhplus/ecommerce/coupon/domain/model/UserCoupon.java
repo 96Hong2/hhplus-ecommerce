@@ -14,20 +14,20 @@ public class UserCoupon {
     private final Long userCouponId;
     private final Long userId;
     private final Long couponId;
-    private boolean isUsed;
     private LocalDateTime usedAt;
     private Long orderId;
     private final LocalDateTime issuedAt;
+    private UserCouponStatus status;
 
-    private UserCoupon(Long userCouponId, Long userId, Long couponId, boolean isUsed,
-                       LocalDateTime usedAt, Long orderId, LocalDateTime issuedAt) {
+    private UserCoupon(Long userCouponId, Long userId, Long couponId,
+                       LocalDateTime usedAt, Long orderId, LocalDateTime issuedAt, UserCouponStatus status) {
         this.userCouponId = userCouponId;
         this.userId = userId;
         this.couponId = couponId;
-        this.isUsed = isUsed;
         this.usedAt = usedAt;
         this.orderId = orderId;
         this.issuedAt = issuedAt;
+        this.status = status;
     }
 
     /**
@@ -41,7 +41,7 @@ public class UserCoupon {
         validateCouponId(couponId);
 
         Long id = sequence.getAndIncrement();
-        return new UserCoupon(id, userId, couponId, false, null, null, LocalDateTime.now());
+        return new UserCoupon(id, userId, couponId, null, null, LocalDateTime.now(), UserCouponStatus.ACTIVE);
     }
 
     /**
@@ -49,15 +49,15 @@ public class UserCoupon {
      * @param orderId 주문 ID
      */
     public void use(Long orderId) {
-        if (this.isUsed) {
+        if (this.status == UserCouponStatus.USED) {
             throw CouponException.couponAlreadyUsed(this.userCouponId);
         }
 
         validateOrderId(orderId);
 
-        this.isUsed = true;
         this.usedAt = LocalDateTime.now();
         this.orderId = orderId;
+        this.status = UserCouponStatus.USED;
     }
 
     /**
@@ -65,7 +65,17 @@ public class UserCoupon {
      * @return 사용 가능 여부
      */
     public boolean canUse() {
-        return !this.isUsed;
+        return this.status == UserCouponStatus.ACTIVE;
+    }
+
+    /**
+     * 쿠폰을 만료 처리한다.
+     */
+    public void expire() {
+        if (this.status == UserCouponStatus.USED) {
+            return;
+        }
+        this.status = UserCouponStatus.EXPIRED;
     }
 
     private static void validateUserId(Long userId) {

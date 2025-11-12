@@ -35,12 +35,16 @@ public class ProductMapper {
                 productOption.getPriceAdjustment(),
                 productOption.getStockQuantity(),
                 productOption.isExposed(),
+                productOption.isSoldOut(),
                 productOption.getCreatedAt(),
                 productOption.getUpdatedAt()
         );
     }
 
     public ProductDetailResponse toProductDetailResponse(Product product, List<ProductOption> productOptionList) {
+        List<ProductOptionResponse> optionResponses = productOptionList.stream()
+                .map(this::toProductOptionResponse)
+                .toList();
         return new ProductDetailResponse(
                 product.getProductId(),
                 product.getProductName(),
@@ -51,7 +55,7 @@ public class ProductMapper {
                 product.isExposed(),
                 product.getCreatedAt(),
                 product.getUpdatedAt(),
-                productOptionList
+                optionResponses
         );
     }
 

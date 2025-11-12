@@ -81,7 +81,7 @@ public class ProductService {
                 product.isExposed(),
                 product.getCreatedAt(),
                 product.getUpdatedAt(),
-                productOptionList
+                productOptionList.stream().map(po -> new ProductMapper().toProductOptionResponse(po)).toList()
         );
     }
 

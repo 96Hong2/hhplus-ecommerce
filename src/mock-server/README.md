@@ -128,7 +128,7 @@ Content-Type: application/json
 - 쿠폰 할인 적용 (FIXED, PERCENTAGE)
 - 주문 번호 자동 생성 (`ORD-YYYYMMDD-XXXX`)
 - `orderItems` 테이블에 주문 상품 추가
-- 품절 시 `soldOutFlag` 자동 업데이트
+- 품절 시 `isSoldOut` 자동 업데이트
 
 **응답 예시:**
 ```json

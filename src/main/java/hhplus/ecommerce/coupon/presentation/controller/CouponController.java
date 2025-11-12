@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 
 @RestController
 @RequestMapping("/api/coupon")
@@ -70,14 +71,14 @@ public class CouponController {
 
     /**
      * 사용자 쿠폰 조회
-     * GET /api/coupons/user/{userId}?isUsed=false
+     * GET /api/coupons/user/{userId}?status=ACTIVE|USED|EXPIRED
      */
     @GetMapping("/user/{userId}")
     public ApiResponse<List<UserCouponResponse>> getUserCoupons(
             @PathVariable Long userId,
-            @RequestParam(required = false) Boolean isUsed) {
+            @RequestParam(required = false) UserCouponStatus status) {
 
-        List<UserCoupon> userCoupons = userCouponService.getUserCoupons(userId, isUsed);
+        List<UserCoupon> userCoupons = userCouponService.getUserCoupons(userId, status);
         List<UserCouponResponse> responses = couponMapper.toUserCouponResponseList(userCoupons);
 
         return ApiResponse.success(responses);

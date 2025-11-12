@@ -18,6 +18,7 @@ public class Order {
     private final BigDecimal finalAmount;
     private final BigDecimal usedPoints;
     private final Long couponId;
+    private final PaymentMethod paymentMethod; // 결제 수단
     private final OrderStatus orderStatus;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
@@ -27,8 +28,8 @@ public class Order {
     private static final String ORDER_NUMBER_PREFIX = "ORD";
 
     public Order(Long orderId, String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
-                 BigDecimal finalAmount, BigDecimal usedPoints, Long couponId, OrderStatus orderStatus,
-                 LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime expiresAt) {
+                 BigDecimal finalAmount, BigDecimal usedPoints, Long couponId, PaymentMethod paymentMethod,
+                 OrderStatus orderStatus, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime expiresAt) {
         this.orderId = orderId;
         this.orderNumber = orderNumber;
         this.userId = userId;
@@ -37,6 +38,7 @@ public class Order {
         this.finalAmount = finalAmount;
         this.usedPoints = usedPoints;
         this.couponId = couponId;
+        this.paymentMethod = paymentMethod;
         this.orderStatus = orderStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -44,9 +46,9 @@ public class Order {
     }
 
     public Order(Long orderId, String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
-                 BigDecimal finalAmount, Long couponId, OrderStatus orderStatus, LocalDateTime expiresAt) {
+                 BigDecimal finalAmount, Long couponId, PaymentMethod paymentMethod, OrderStatus orderStatus, LocalDateTime expiresAt) {
         this(orderId, orderNumber, userId, totalAmount, discountAmount, finalAmount, BigDecimal.ZERO,
-             couponId, orderStatus, null, null, expiresAt);
+             couponId, paymentMethod, orderStatus, null, null, expiresAt);
     }
 
     public static Order create(String orderNumber, Long userId, BigDecimal totalAmount, BigDecimal discountAmount,
@@ -71,6 +73,7 @@ public class Order {
                 finalAmount,
                 validUsedPoints,
                 couponId,
+                null, // 주문 생성 시점에는 결제 수단 미정
                 OrderStatus.PENDING,
                 now,
                 now,
@@ -140,7 +143,52 @@ public class Order {
                 this.finalAmount,
                 this.usedPoints,
                 this.couponId,
+                this.paymentMethod,
                 newStatus,
+                this.createdAt,
+                LocalDateTime.now(),
+                this.expiresAt
+        );
+    }
+
+    /**
+     * 결제 수단을 설정하고 결제 완료 처리
+     * @param paymentMethod 결제 수단
+     * @return 결제 완료된 Order 객체
+     */
+    public Order payWithMethod(PaymentMethod paymentMethod) {
+        if (paymentMethod == null) {
+            throw new IllegalArgumentException("결제 수단은 필수입니다.");
+        }
+
+        if (this.orderStatus == OrderStatus.PAID) {
+            throw OrderException.orderAlreadyPaid(this.orderId);
+        }
+
+        if (this.orderStatus == OrderStatus.CANCELLED) {
+            throw OrderException.orderAlreadyCancelled(this.orderId);
+        }
+
+        if (!this.orderStatus.equals(OrderStatus.PENDING)) {
+            throw OrderException.invalidOrderStatus(this.orderStatus.name(), OrderStatus.PAID.name());
+        }
+
+        // 만료된 주문
+        if (isExpired()) {
+            throw OrderException.orderTimeout(this.orderId);
+        }
+
+        return new Order(
+                this.orderId,
+                this.orderNumber,
+                this.userId,
+                this.totalAmount,
+                this.discountAmount,
+                this.finalAmount,
+                this.usedPoints,
+                this.couponId,
+                paymentMethod,
+                OrderStatus.PAID,
                 this.createdAt,
                 LocalDateTime.now(),
                 this.expiresAt

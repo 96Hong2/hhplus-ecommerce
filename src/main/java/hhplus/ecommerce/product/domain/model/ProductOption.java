@@ -17,6 +17,8 @@ public class ProductOption {
     private BigDecimal priceAdjustment; // 옵션으로 인해 추가되거나 감소되는 가격
     private int stockQuantity;
     private boolean isExposed;
+    private boolean isSoldOut; // 명시적 품절 플래그 (재고 0 또는 수동 품절)
+    private boolean isDeleted;   // 논리 삭제
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -27,6 +29,8 @@ public class ProductOption {
         this.priceAdjustment = priceAdjustment;
         this.stockQuantity = stockQuantity;
         this.isExposed = isExposed;
+        this.isSoldOut = stockQuantity == 0;
+        this.isDeleted = false;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -89,6 +93,7 @@ public class ProductOption {
         this.optionName = optionName.trim();
         this.priceAdjustment = priceAdjustment;
         this.isExposed = isExposed;
+        this.isSoldOut = this.stockQuantity == 0 || this.isSoldOut;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -104,6 +109,7 @@ public class ProductOption {
             throw StockException.stockQuantityInsufficient(productOptionId, stockQuantity, quantity);
         }
         this.stockQuantity -= quantity;
+        this.isSoldOut = (this.stockQuantity == 0) || this.isSoldOut;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -116,6 +122,9 @@ public class ProductOption {
             throw StockException.invalidStockAmount(quantity);
         }
         this.stockQuantity += quantity;
+        if (this.stockQuantity > 0) {
+            this.isSoldOut = false;
+        }
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -133,7 +142,7 @@ public class ProductOption {
      * @return 품절 여부
      */
     public boolean isSoldOut() {
-        return stockQuantity == 0;
+        return isSoldOut || stockQuantity == 0;
     }
 
     /**
@@ -142,7 +151,7 @@ public class ProductOption {
      * @return 구매 가능 여부
      */
     public boolean isAvailableForPurchase(int requestedQuantity) {
-        return isExposed && !isSoldOut() && hasEnoughStock(requestedQuantity);
+        return isExposed && !isDeleted && !isSoldOut() && hasEnoughStock(requestedQuantity);
     }
 
     /**
@@ -152,6 +161,7 @@ public class ProductOption {
     public void setStockQuantity(int stockQuantity) {
         validateStockQuantity(stockQuantity);
         this.stockQuantity = stockQuantity;
+        this.isSoldOut = (stockQuantity == 0) || this.isSoldOut;
         this.updatedAt = LocalDateTime.now();
     }
 
@@ -159,6 +169,23 @@ public class ProductOption {
      * 상품옵션을 삭제한다. (비노출 처리)
      */
     public void hide() {
+        this.isExposed = false;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 옵션을 수동 품절 처리한다.
+     */
+    public void markSoldOut() {
+        this.isSoldOut = true;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 옵션을 논리 삭제한다.
+     */
+    public void delete() {
+        this.isDeleted = true;
         this.isExposed = false;
         this.updatedAt = LocalDateTime.now();
     }

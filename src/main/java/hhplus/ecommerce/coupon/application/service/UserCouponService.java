@@ -7,9 +7,8 @@ import org.springframework.stereotype.Service;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
 import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
-import org.springframework.stereotype.Service;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -75,11 +74,11 @@ public class UserCouponService {
     /**
      * 사용자 쿠폰 목록 조회
      */
-    public List<UserCoupon> getUserCoupons(Long userId, Boolean isUsed) {
-        if (isUsed == null) {
+    public List<UserCoupon> getUserCoupons(Long userId, UserCouponStatus status) {
+        if (status == null) {
             return userCouponRepository.findByUserId(userId);
         }
-        return userCouponRepository.findByUserIdAndIsUsed(userId, isUsed);
+        return userCouponRepository.findByUserIdAndStatus(userId, status);
     }
 
     /**
@@ -89,7 +88,7 @@ public class UserCouponService {
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                 .orElseThrow(() -> CouponException.couponNotFound(userCouponId));
 
-        if (userCoupon.isUsed()) {
+        if (userCoupon.getStatus() == UserCouponStatus.USED) {
             throw CouponException.couponAlreadyUsed(userCouponId);
         }
 

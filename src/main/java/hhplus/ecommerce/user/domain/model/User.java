@@ -15,6 +15,7 @@ public class User {
     private final UserRole role;
     private final LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isDeleted;
 
     public User(Long userId, String username, BigDecimal pointBalance, UserRole role) {
         this.userId = userId;
@@ -23,6 +24,7 @@ public class User {
         this.role = role;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.isDeleted = false;
     }
 
     /**
@@ -82,5 +84,13 @@ public class User {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw UserException.creationFailed("금액은 0보다 커야 합니다.");
         }
+    }
+
+    /**
+     * 유저를 논리 삭제한다.
+     */
+    public void delete() {
+        this.isDeleted = true;
+        this.updatedAt = LocalDateTime.now();
     }
 }

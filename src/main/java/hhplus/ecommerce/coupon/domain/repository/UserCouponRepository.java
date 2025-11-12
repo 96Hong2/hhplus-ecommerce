@@ -1,6 +1,7 @@
 package hhplus.ecommerce.coupon.domain.repository;
 
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +13,7 @@ public interface UserCouponRepository {
 
     List<UserCoupon> findByUserId(Long userId);
 
-    List<UserCoupon> findByUserIdAndIsUsed(Long userId, Boolean isUsed);
+    List<UserCoupon> findByUserIdAndStatus(Long userId, UserCouponStatus status);
 
     Optional<UserCoupon> findByUserIdAndCouponId(Long userId, Long couponId);
 
