@@ -2,29 +2,52 @@ package hhplus.ecommerce.product.domain.model;
 
 import hhplus.ecommerce.common.domain.constants.BusinessConstants;
 import hhplus.ecommerce.common.domain.exception.ProductException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "popular_products", indexes = {
+    @Index(name = "idx_calculation_rank", columnList = "calculation_date, rank", unique = true),
+    @Index(name = "idx_product_id", columnList = "product_id"),
+    @Index(name = "idx_calculation_date", columnList = "calculation_date")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PopularProduct {
-    private static AtomicLong sequence = new AtomicLong(1);
 
-    private final Long popularProductId;
-    private final Long productId;
-    private final int salesCount;
-    private final LocalDateTime calculationDate;
-    private final int rank;
-    private final LocalDateTime createdAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long popularProductId;
 
-    private PopularProduct(Long popularProductId, Long productId, int salesCount, LocalDateTime calculationDate, int rank) {
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
+
+    @Column(name = "sales_count", nullable = false)
+    private int salesCount;
+
+    @Column(name = "calculation_date", nullable = false)
+    private LocalDate calculationDate;
+
+    @Column(name = "rank", nullable = false)
+    private int rank;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    private PopularProduct(Long popularProductId, Long productId, int salesCount, LocalDate calculationDate, int rank) {
         this.popularProductId = popularProductId;
         this.productId = productId;
         this.salesCount = salesCount;
         this.calculationDate = calculationDate;
         this.rank = rank;
-        this.createdAt = LocalDateTime.now();
     }
 
     /**
@@ -35,14 +58,13 @@ public class PopularProduct {
      * @param rank 순위
      * @return 생성된 인기 상품
      */
-    public static PopularProduct create(Long productId, int salesCount, LocalDateTime calculationDate, int rank) {
+    public static PopularProduct create(Long productId, int salesCount, LocalDate calculationDate, int rank) {
         validateProductId(productId);
         validateSalesCount(salesCount);
         validateCalculationDate(calculationDate);
         validateRank(rank);
 
-        Long id = sequence.getAndIncrement();
-        return new PopularProduct(id, productId, salesCount, calculationDate, rank);
+        return new PopularProduct(null, productId, salesCount, calculationDate, rank);
     }
 
     private static void validateProductId(Long productId) {
@@ -57,11 +79,11 @@ public class PopularProduct {
         }
     }
 
-    private static void validateCalculationDate(LocalDateTime calculationDate) {
+    private static void validateCalculationDate(LocalDate calculationDate) {
         if (calculationDate == null) {
             throw new IllegalArgumentException("집계 날짜는 필수입니다.");
         }
-        if (calculationDate.isAfter(LocalDateTime.now())) {
+        if (calculationDate.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("집계 날짜는 미래일 수 없습니다.");
         }
     }
@@ -90,6 +112,6 @@ public class PopularProduct {
      * @return 유효 여부
      */
     public boolean isRecent(int days) {
-        return calculationDate.isAfter(LocalDateTime.now().minusDays(days));
+        return calculationDate.isAfter(LocalDate.now().minusDays(days));
     }
 }

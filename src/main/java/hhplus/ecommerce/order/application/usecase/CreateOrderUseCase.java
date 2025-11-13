@@ -7,6 +7,7 @@ import hhplus.ecommerce.order.presentation.dto.request.OrderCreateRequest;
 import hhplus.ecommerce.order.presentation.dto.response.OrderCreateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,7 +26,10 @@ public class CreateOrderUseCase {
      * 4. 주문 생성 (Domain)
      * 5. 재고 예약 (Service)
      * 6. 주문 아이템 저장 (Service)
+     *
+     * @Transactional: 주문 저장, 재고 예약, 주문 아이템 저장이 모두 성공하거나 모두 롤백되어야 함
      */
+    @Transactional
     public OrderCreateResponse execute(Long userId, OrderCreateRequest request) {
         // 1. 주문 아이템 정보 수집 (상품 조회, 가격 계산 포함)
         List<OrderItemInfo> orderItemInfos = orderService.collectOrderItems(request.getItems());
@@ -43,16 +47,11 @@ public class CreateOrderUseCase {
         String orderNumber = orderService.generateOrderNumber(userId);
 
         // 5. 주문 생성 (Domain 팩토리 메서드 사용)
-        BigDecimal usedPoints = request.getUsedPoints() != null
-                ? BigDecimal.valueOf(request.getUsedPoints())
-                : BigDecimal.ZERO;
-
         Order order = Order.create(
                 orderNumber,
                 userId,
                 totalAmount,
                 discountAmount,
-                usedPoints,
                 request.getCouponId()
         );
 
@@ -70,10 +69,9 @@ public class CreateOrderUseCase {
                 savedOrder.getOrderId(),
                 savedOrder.getOrderNumber(),
                 savedOrder.getOrderStatus(),
-                savedOrder.getTotalAmount().longValue(),
-                savedOrder.getDiscountAmount().longValue(),
-                savedOrder.getFinalAmount().longValue(),
-                savedOrder.getUsedPoints().longValue(),
+                savedOrder.getTotalAmount(),
+                savedOrder.getDiscountAmount(),
+                savedOrder.getFinalAmount(),
                 savedOrder.getExpiresAt()
         );
     }

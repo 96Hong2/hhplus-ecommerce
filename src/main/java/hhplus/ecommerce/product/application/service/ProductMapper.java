@@ -8,7 +8,6 @@ import hhplus.ecommerce.product.presentation.dto.response.ProductListResponse;
 import hhplus.ecommerce.product.presentation.dto.response.ProductOptionResponse;
 import hhplus.ecommerce.product.presentation.dto.response.TopProductResponse;
 import org.springframework.stereotype.Component;
-;
 import java.util.List;
 
 @Component
@@ -64,7 +63,7 @@ public class ProductMapper {
                 popularProduct.getPopularProductId(),
                 popularProduct.getProductId(),
                 popularProduct.getSalesCount(),
-                popularProduct.getCalculationDate(),
+                popularProduct.getCalculationDate().atStartOfDay(),
                 popularProduct.getRank(),
                 popularProduct.getCreatedAt()
         );

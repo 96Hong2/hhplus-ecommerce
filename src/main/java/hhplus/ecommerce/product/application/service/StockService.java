@@ -12,6 +12,7 @@ import hhplus.ecommerce.product.domain.repository.StockReservationRepository;
 import hhplus.ecommerce.product.presentation.dto.response.StockResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +64,10 @@ public class StockService {
      * @param updatedBy 수정자 ID
      * @param description 설명
      * @return 변경된 재고 정보
+     *
+     * @Transactional: ProductOption 재고 업데이트 + StockHistory 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public StockHistory updateStock(Long productOptionId, int amount, Long updatedBy, String description) {
         ProductOption productOption = productOptionRepository.findById(productOptionId)
                 .orElseThrow(() -> ProductException.productOptionNotFound(productOptionId));
@@ -99,7 +103,10 @@ public class StockService {
      * @param productOptionId 상품 옵션 ID
      * @param quantity 예약 수량
      * @return 재고 예약 정보 (15분간 유효)
+     *
+     * @Transactional: 재고 확인 후 예약 생성까지 원자적으로 처리 (읽기 후 쓰기)
      */
+    @Transactional
     public StockReservation reserveStock(Long orderId, Long productOptionId, int quantity) {
         // 상품옵션 존재 검증
         productOptionRepository.findById(productOptionId)
@@ -120,7 +127,10 @@ public class StockService {
      * 재고 예약 확정 (결제 완료 시 호출)
      * @param reservationId 재고 예약 ID
      * @return 확정된 재고 예약 정보
+     *
+     * @Transactional: 예약 상태 변경 + ProductOption 재고 차감이 원자적으로 처리되어야 함
      */
+    @Transactional
     public StockReservation confirmStockReservation(Long reservationId) {
         // 1. 예약 정보 조회 및 상태 확인 (RESERVED 상태여야 함)
         StockReservation stockReservation = stockReservationRepository.findByStockReservationId(reservationId)
@@ -142,7 +152,10 @@ public class StockService {
      * 재고 예약 해제 (주문 취소 또는 타임아웃 시 호출)
      * @param reservationId 재고 예약 ID
      * @return 해제된 재고 예약 정보
+     *
+     * @Transactional: 예약 상태 변경이 DB에 커밋되어야 함
      */
+    @Transactional
     public StockReservation releaseStockReservation(Long reservationId) {
         // 1. 예약 정보 조회
         StockReservation stockReservation = stockReservationRepository.findByStockReservationId(reservationId)

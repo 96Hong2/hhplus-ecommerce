@@ -19,6 +19,7 @@ public class InMemoryStockHistoryRepository implements StockHistoryRepository {
             StockHistory newStockHistory = StockHistory.create(
                     stockHistory.getProductOptionId(),
                     stockHistory.getAmount(),
+                    stockHistory.getAdjustmentType(),
                     stockHistory.getBalance(),
                     stockHistory.getDescription(),
                     stockHistory.getUpdatedBy()

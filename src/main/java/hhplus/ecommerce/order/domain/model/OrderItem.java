@@ -1,23 +1,67 @@
 package hhplus.ecommerce.order.domain.model;
 
 import hhplus.ecommerce.common.domain.exception.OrderException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "order_items", indexes = {
+    @Index(name = "idx_order_id", columnList = "order_id"),
+    @Index(name = "idx_order_status", columnList = "order_id, item_status"),
+    @Index(name = "idx_item_status", columnList = "item_status"),
+    @Index(name = "idx_product_option", columnList = "product_option_id")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
 
-    private final Long orderItemId;
-    private final Long orderId;
-    private final Long productId;
-    private final Long productOptionId;
-    private final String productName;
-    private final String optionName;
-    private final BigDecimal unitPrice;
-    private final int quantity;
-    private final BigDecimal subtotal;
-    private final OrderItemStatus itemStatus;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long orderItemId;
+
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;
+
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
+
+    @Column(name = "product_option_id", nullable = false)
+    private Long productOptionId;
+
+    @Column(name = "product_name", nullable = false, length = 200)
+    private String productName;
+
+    @Column(name = "option_name", nullable = false, length = 100)
+    private String optionName;
+
+    @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(name = "quantity", nullable = false)
+    private int quantity;
+
+    @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
+    private BigDecimal subtotal;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "item_status", nullable = false, length = 20)
+    private OrderItemStatus itemStatus;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     // 모든 필드를 받는 생성자 (불변 객체 생성용)
     public OrderItem(Long orderItemId, Long orderId, Long productId, Long productOptionId,

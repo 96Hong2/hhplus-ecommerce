@@ -1,32 +1,62 @@
 package hhplus.ecommerce.coupon.domain.model;
 
 import hhplus.ecommerce.common.domain.exception.CouponException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "user_coupons", indexes = {
+    @Index(name = "idx_user_coupon", columnList = "user_id, coupon_id", unique = true),
+    @Index(name = "idx_user_status_issued", columnList = "user_id, status, issued_at"),
+    @Index(name = "idx_coupon_id", columnList = "coupon_id"),
+    @Index(name = "idx_status_issued", columnList = "status, issued_at")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserCoupon {
 
-    private static AtomicLong sequence = new AtomicLong(1);
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long userCouponId;
 
-    private final Long userCouponId;
-    private final Long userId;
-    private final Long couponId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "coupon_id", nullable = false)
+    private Long couponId;
+
+    @Column(name = "used_at")
     private LocalDateTime usedAt;
+
+    @Column(name = "order_id")
     private Long orderId;
-    private final LocalDateTime issuedAt;
+
+    @CreationTimestamp
+    @Column(name = "issued_at", nullable = false, updatable = false)
+    private LocalDateTime issuedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     private UserCouponStatus status;
 
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     private UserCoupon(Long userCouponId, Long userId, Long couponId,
-                       LocalDateTime usedAt, Long orderId, LocalDateTime issuedAt, UserCouponStatus status) {
+                       LocalDateTime usedAt, Long orderId, UserCouponStatus status) {
         this.userCouponId = userCouponId;
         this.userId = userId;
         this.couponId = couponId;
         this.usedAt = usedAt;
         this.orderId = orderId;
-        this.issuedAt = issuedAt;
         this.status = status;
     }
 
@@ -40,8 +70,7 @@ public class UserCoupon {
         validateUserId(userId);
         validateCouponId(couponId);
 
-        Long id = sequence.getAndIncrement();
-        return new UserCoupon(id, userId, couponId, null, null, LocalDateTime.now(), UserCouponStatus.ACTIVE);
+        return new UserCoupon(null, userId, couponId, null, null, UserCouponStatus.ACTIVE);
     }
 
     /**
