@@ -229,10 +229,10 @@ CREATE TABLE popular_products (
     product_id BIGINT NOT NULL COMMENT '상품 ID',
     sales_count INT NOT NULL DEFAULT 0 COMMENT '판매 수량',
     calculation_date DATE NOT NULL COMMENT '집계 기준일',
-    rank INT NOT NULL COMMENT '순위',
+    `rank` INT NOT NULL COMMENT '순위',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id),
-    UNIQUE KEY uk_date_rank (calculation_date, rank),
+    UNIQUE KEY uk_date_rank (calculation_date, `rank`),
     INDEX idx_product_id (product_id),
     INDEX idx_calculation_date (calculation_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='인기 상품 통계';

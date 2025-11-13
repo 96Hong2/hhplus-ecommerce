@@ -35,8 +35,15 @@ dependencies {
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Spring Boot Testcontainers 지원
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    // Testcontainers 코어
+    testImplementation("org.testcontainers:junit-jupiter")
+    // MySQL 컨테이너
+    testImplementation("org.testcontainers:mysql")
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

@@ -38,7 +38,7 @@ public class Product {
     private String imageUrl;
 
     // 기본 가격
-    @Column(name = "price", precision = 15, scale = 2)
+    @Column(name = "price", nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
     // 판매량은 popular_products 테이블에서 별도 관리 (통계용)
