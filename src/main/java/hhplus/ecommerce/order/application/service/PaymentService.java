@@ -7,6 +7,7 @@ import hhplus.ecommerce.order.domain.repository.OrderItemRepository;
 import hhplus.ecommerce.order.domain.repository.OrderRepository;
 import hhplus.ecommerce.order.presentation.dto.request.PaymentRequest;
 import hhplus.ecommerce.order.presentation.dto.response.PaymentResponse;
+import hhplus.ecommerce.order.domain.model.PaymentMethod;
 import hhplus.ecommerce.point.application.service.PointService;
 import hhplus.ecommerce.product.application.service.StockService;
 import hhplus.ecommerce.product.domain.model.StockReservation;
@@ -26,13 +27,13 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final StockReservationRepository stockReservationRepository;
-    private final PointService pointService;
     private final StockService stockService;
+    private final PointService pointService;
 
     /**
      * 주문 결제
      * @param orderId 주문 ID
-     * @param request 결제 요청 (결제 수단, 사용 포인트)
+     * @param request 결제 요청 (결제 수단)
      * @return 결제 완료 응답
      */
     @Transactional
@@ -51,10 +52,12 @@ public class PaymentService {
             throw OrderException.orderItemsEmpty();
         }
 
-        // 3. 포인트 사용 처리
-        if (request.getUsedPoints() != null && request.getUsedPoints() > 0) {
-            BigDecimal usedPoints = BigDecimal.valueOf(request.getUsedPoints());
-            pointService.usePoint(order.getUserId(), usedPoints, orderId, "주문 결제");
+        // 3. 결제 수단 파싱 및 검증
+        PaymentMethod method;
+        try {
+            method = PaymentMethod.valueOf(request.getPaymentMethod().toUpperCase());
+        } catch (Exception e) {
+            throw OrderException.invalidPaymentMethod(request.getPaymentMethod());
         }
 
         // 4. 재고 예약 확정 (각 주문 항목에 대해)
@@ -67,17 +70,23 @@ public class PaymentService {
             stockService.confirmStockReservation(reservation.getStockReservationId());
         }
 
-        // 5. 주문 상태 업데이트 (PAID)
-        Order paidOrder = order.pay();
+        // 5. 포인트 결제 처리 (필요 시)
+        if (method == PaymentMethod.POINT) {
+            BigDecimal amount = order.getFinalAmount();
+            pointService.usePoint(order.getUserId(), amount, orderId, "주문 결제");
+        }
+
+        // 6. 주문 상태 업데이트 (PAID) 및 결제수단 반영
+        Order paidOrder = order.payWithMethod(method);
         orderRepository.save(paidOrder);
 
-        // 6. 결제 결과 반환
+        // 7. 결제 결과 반환
         return new PaymentResponse(
                 paidOrder.getOrderId(),
                 paidOrder.getOrderNumber(),
                 paidOrder.getOrderStatus(),
-                paidOrder.getFinalAmount().longValue(),
-                request.getPaymentMethod(),
+                paidOrder.getFinalAmount(),
+                method.name(),
                 LocalDateTime.now()
         );
     }

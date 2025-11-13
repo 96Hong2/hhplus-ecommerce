@@ -26,12 +26,19 @@ public class InMemoryOrderRepository implements OrderRepository {
     public Order save(Order order) {
         if (order.getOrderId() == null) {
             Order newOrder = new Order(
-                    sequence.incrementAndGet(), order.getOrderNumber(), order.getUserId(), order.getTotalAmount(),
-                    order.getDiscountAmount(), order.getFinalAmount(), order.getCouponId(),
-                    order.getOrderStatus(), order.getExpiresAt()
+                    sequence.incrementAndGet(),
+                    order.getOrderNumber(),
+                    order.getUserId(),
+                    order.getTotalAmount(),
+                    order.getDiscountAmount(),
+                    order.getFinalAmount(),
+                    order.getCouponId(),
+                    order.getPaymentMethod(),
+                    order.getOrderStatus(),
+                    order.getExpiresAt()
             );
             storage.put(newOrder.getOrderId(), newOrder);
-            orderNumberIndex.put(order.getOrderNumber(), order.getOrderId());
+            orderNumberIndex.put(order.getOrderNumber(), newOrder.getOrderId());
             return newOrder;
         }
 

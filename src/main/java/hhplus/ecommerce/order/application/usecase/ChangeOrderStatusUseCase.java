@@ -55,7 +55,7 @@ public class ChangeOrderStatusUseCase {
                         item.getProductName(),
                         item.getOptionName(),
                         item.getQuantity(),
-                        item.getUnitPrice().longValue(),
+                        item.getUnitPrice(),
                         item.getItemStatus()
                 ))
                 .collect(Collectors.toList());
@@ -64,10 +64,9 @@ public class ChangeOrderStatusUseCase {
                 info.getOrderId(),
                 info.getOrderNumber(),
                 info.getOrderStatus(),
-                info.getTotalAmount().longValue(),
-                info.getDiscountAmount().longValue(),
-                info.getFinalAmount().longValue(),
-                info.getUsedPoints().longValue(),
+                info.getTotalAmount(),
+                info.getDiscountAmount(),
+                info.getFinalAmount(),
                 itemResponses,
                 info.getCreatedAt(),
                 info.getExpiresAt()

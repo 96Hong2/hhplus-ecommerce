@@ -41,7 +41,7 @@ public class ChangeOrderItemStatusUseCase {
                 info.getProductName(),
                 info.getOptionName(),
                 info.getQuantity(),
-                info.getUnitPrice().longValue(),
+                info.getUnitPrice(),
                 info.getItemStatus()
         );
     }

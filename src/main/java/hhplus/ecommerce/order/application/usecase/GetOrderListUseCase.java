@@ -41,7 +41,7 @@ public class GetOrderListUseCase {
                         order.getOrderId(),
                         order.getOrderNumber(),
                         order.getOrderStatus(),
-                        order.getFinalAmount().longValue(),
+                        order.getFinalAmount(),
                         order.getCreatedAt(),
                         order.getExpiresAt()
                 ))

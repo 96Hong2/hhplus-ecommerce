@@ -2118,10 +2118,6 @@ components:
               quantity:
                 type: integer
                 minimum: 1
-        usedPoints:
-          type: number
-          format: decimal
-          default: 0
         couponId:
           type: integer
           format: int64
@@ -2148,10 +2144,7 @@ components:
         finalAmount:
           type: number
           format: decimal
-          description: 실제 결제 금액 (totalAmount - discountAmount - usedPoints)
-        usedPoints:
-          type: number
-          format: decimal
+          description: 실제 결제 금액 (totalAmount - discountAmount)
         couponId:
           type: integer
           format: int64
@@ -2191,9 +2184,6 @@ components:
           type: number
           format: decimal
         finalAmount:
-          type: number
-          format: decimal
-        usedPoints:
           type: number
           format: decimal
         couponId:
@@ -2298,10 +2288,6 @@ components:
           type: string
           description: 결제 수단
           enum: [CREDIT, CHECK, CASH, KAKAO]
-        usedPoints:
-          type: number
-          format: decimal
-          default: 0
 
     PaymentResponse:
       type: object

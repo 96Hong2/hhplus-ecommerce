@@ -52,8 +52,7 @@
 
 - **total_amount**: 주문 상품들의 정가 합계 (할인 전)
 - **discount_amount**: 쿠폰으로 인한 할인 금액
-- **final_amount**: 고객이 실제 결제해야 할 금액 (total_amount - discount_amount - used_points)
-- **used_points**: 결제 시 사용한 포인트 (1포인트 = 1원)
+- **final_amount**: 고객이 실제 결제해야 할 금액 (total_amount - discount_amount)
 
 ### 플래그 관련 용어
 
@@ -106,6 +105,7 @@ id BIGINT [pk, increment, note: '상품 고유 ID']
 product_name VARCHAR(200) [not null, note: '상품명']
 category VARCHAR(100) [not null, note: '카테고리']
 description TEXT [note: '상품 설명']
+price DECIMAL(15,2) [not null, note : '기본 상품 가격']
 image_url VARCHAR(500) [note: '이미지 URL']
 is_exposed TINYINT(1) [not null, default: 1, note: '상품목록 노출여부 (1: 노출, 0: 비노출)']
 is_deleted TINYINT(1) [not null, default: 0, note: '삭제 여부 (논리 삭제)']

@@ -116,8 +116,7 @@ Content-Type: application/json
       "quantity": 2
     }
   ],
-  "couponId": 1,
-  "usedPoints": 5000
+  "couponId": 1
 }
 ```
 
@@ -141,7 +140,6 @@ Content-Type: application/json
     "totalAmount": 118000,
     "discountAmount": 11800,
     "finalAmount": 101200,
-    "usedPoints": 5000,
     "orderStatus": "PENDING",
     "createdAt": "2025-01-20T10:00:00Z"
   },

@@ -371,7 +371,6 @@
       "quantity": 2
     }
   ],
-  "usedPoints": 5000.00,
   "couponId": 1
 }
 ```
@@ -388,7 +387,6 @@
     "totalAmount": 20000,
     "discountAmount": 2000,
     "finalAmount": 13000,
-    "usedPoints": 5000,
     "expiresAt": "2025-11-02T12:15:00"
   }
 }
@@ -468,8 +466,7 @@
 
 ```json
 {
-  "paymentMethod": "CREDIT",
-  "usedPoints": 5000.00
+  "paymentMethod": "CREDIT"
 }
 ```
 

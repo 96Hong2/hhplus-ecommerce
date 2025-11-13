@@ -194,7 +194,6 @@ public class OrderService {
                 order.getTotalAmount(),
                 order.getDiscountAmount(),
                 order.getFinalAmount(),
-                order.getUsedPoints(),
                 itemInfos,
                 order.getCreatedAt(),
                 order.getExpiresAt()
