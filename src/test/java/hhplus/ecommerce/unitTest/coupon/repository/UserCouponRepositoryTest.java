@@ -2,6 +2,7 @@ package hhplus.ecommerce.unitTest.coupon.repository;
 
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
 import hhplus.ecommerce.coupon.infrastructure.repository.InMemoryUserCouponRepository;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -83,8 +84,8 @@ class UserCouponRepositoryTest {
     }
 
     @Test
-    @DisplayName("사용 여부로 사용자 쿠폰 목록을 필터링할 수 있다")
-    void findByUserIdAndIsUsed() {
+    @DisplayName("상태로 사용자 쿠폰 목록을 필터링할 수 있다")
+    void findByUserIdAndStatus() {
         UserCoupon userCoupon1 = UserCoupon.create(1L, 1L);
         UserCoupon userCoupon2 = UserCoupon.create(1L, 2L);
         userCoupon2.use(100L);
@@ -92,8 +93,8 @@ class UserCouponRepositoryTest {
         userCouponRepository.save(userCoupon1);
         userCouponRepository.save(userCoupon2);
 
-        List<UserCoupon> unusedCoupons = userCouponRepository.findByUserIdAndIsUsed(1L, false);
-        List<UserCoupon> usedCoupons = userCouponRepository.findByUserIdAndIsUsed(1L, true);
+        List<UserCoupon> unusedCoupons = userCouponRepository.findByUserIdAndStatus(1L, UserCouponStatus.ACTIVE);
+        List<UserCoupon> usedCoupons = userCouponRepository.findByUserIdAndStatus(1L, UserCouponStatus.USED);
 
         assertThat(unusedCoupons).hasSize(1);
         assertThat(usedCoupons).hasSize(1);

@@ -30,7 +30,6 @@ class OrderRepositoryTest {
                 1L,
                 BigDecimal.valueOf(50000),
                 BigDecimal.valueOf(5000),
-                BigDecimal.ZERO,
                 null
         );
 
@@ -49,7 +48,6 @@ class OrderRepositoryTest {
                 1L,
                 BigDecimal.valueOf(50000),
                 BigDecimal.valueOf(5000),
-                BigDecimal.ZERO,
                 null
         );
         Order savedOrder = orderRepository.save(order);
@@ -63,11 +61,11 @@ class OrderRepositoryTest {
     @Test
     @DisplayName("사용자 ID로 주문 목록을 조회할 수 있다")
     void findAllByUserId() {
-        orderRepository.save(Order.create("ORD-001", 1L, BigDecimal.valueOf(10000), BigDecimal.ZERO, BigDecimal.ZERO, null));
-        orderRepository.save(Order.create("ORD-002", 1L, BigDecimal.valueOf(20000), BigDecimal.ZERO, BigDecimal.ZERO, null));
-        orderRepository.save(Order.create("ORD-003", 2L, BigDecimal.valueOf(30000), BigDecimal.ZERO, BigDecimal.ZERO, null));
+        orderRepository.save(Order.create("ORD-001", 1L, BigDecimal.valueOf(10000), BigDecimal.ZERO, null));
+        orderRepository.save(Order.create("ORD-002", 1L, BigDecimal.valueOf(20000), BigDecimal.ZERO, null));
+        orderRepository.save(Order.create("ORD-003", 2L, BigDecimal.valueOf(30000), BigDecimal.ZERO, null));
 
-        // claude review : 메서드명 변경 findAllByUserId → findByUserId
+        // 메서드명 변경 findAllByUserId → findByUserId
         List<Order> orders = orderRepository.findByUserId(1L);
 
         assertThat(orders).hasSize(2);
@@ -76,15 +74,15 @@ class OrderRepositoryTest {
     @Test
     @DisplayName("주문 상태로 주문 목록을 조회할 수 있다")
     void findAllByUserIdAndOrderStatus() {
-        Order order1 = Order.create("ORD-001", 1L, BigDecimal.valueOf(10000), BigDecimal.ZERO, BigDecimal.ZERO, null);
-        Order order2 = Order.create("ORD-002", 1L, BigDecimal.valueOf(20000), BigDecimal.ZERO, BigDecimal.ZERO, null);
+        Order order1 = Order.create("ORD-001", 1L, BigDecimal.valueOf(10000), BigDecimal.ZERO, null);
+        Order order2 = Order.create("ORD-002", 1L, BigDecimal.valueOf(20000), BigDecimal.ZERO, null);
 
         order2 = order2.pay();
 
         orderRepository.save(order1);
         orderRepository.save(order2);
 
-        // claude review : 메서드명 변경 findAllByUserIdAndOrderStatus → findByUserIdAndStatus
+        // 메서드명 변경 findAllByUserIdAndOrderStatus → findByUserIdAndStatus
         List<Order> pendingOrders = orderRepository.findByUserIdAndStatus(1L, OrderStatus.PENDING);
         List<Order> paidOrders = orderRepository.findByUserIdAndStatus(1L, OrderStatus.PAID);
 
@@ -99,7 +97,6 @@ class OrderRepositoryTest {
                 "ORD-001",
                 1L,
                 BigDecimal.valueOf(50000),
-                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 null
         );

@@ -7,6 +7,7 @@ import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
 import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -179,21 +180,21 @@ class UserCouponServiceTest {
     }
 
     @Test
-    @DisplayName("사용 여부로 필터링하여 쿠폰 목록을 조회할 수 있다")
-    void getUserCouponsByUsed() {
+    @DisplayName("상태로 필터링하여 쿠폰 목록을 조회할 수 있다")
+    void getUserCouponsByStatus() {
         // given
         Long userId = 1L;
         List<UserCoupon> expectedCoupons = List.of(UserCoupon.create(userId, 1L));
 
-        when(userCouponRepository.findByUserIdAndIsUsed(userId, false))
+        when(userCouponRepository.findByUserIdAndStatus(userId, UserCouponStatus.ACTIVE))
                 .thenReturn(expectedCoupons);
 
         // when
-        List<UserCoupon> result = userCouponService.getUserCoupons(userId, false);
+        List<UserCoupon> result = userCouponService.getUserCoupons(userId, UserCouponStatus.ACTIVE);
 
         // then
         assertThat(result).hasSize(1);
-        verify(userCouponRepository, times(1)).findByUserIdAndIsUsed(userId, false);
+        verify(userCouponRepository, times(1)).findByUserIdAndStatus(userId, UserCouponStatus.ACTIVE);
     }
 
     @Test
@@ -212,7 +213,7 @@ class UserCouponServiceTest {
         UserCoupon result = userCouponService.useCoupon(userCouponId, orderId);
 
         // then
-        assertThat(result.isUsed()).isTrue();
+        assertThat(result.getStatus()).isEqualTo(UserCouponStatus.USED);
         verify(userCouponRepository, times(1)).save(any(UserCoupon.class));
     }
 

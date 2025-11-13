@@ -92,7 +92,7 @@ class ProductRepositoryTest {
         Product product1 = Product.create("상품1", "전자제품", "설명1", "http://url1", BigDecimal.valueOf(10000), true);
         Product product2 = Product.create("상품2", "전자제품", "설명2", "http://url2", BigDecimal.valueOf(20000), true);
 
-        // claude review : updateSalesCount 메서드가 없으므로 increaseSalesCount 사용
+        // updateSalesCount 메서드가 없으므로 increaseSalesCount 사용
         product1.increaseSalesCount(100L);
         product2.increaseSalesCount(200L);
 

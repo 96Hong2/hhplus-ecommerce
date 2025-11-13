@@ -1,7 +1,6 @@
 package hhplus.ecommerce.unitTest.user.repository;
 
 import hhplus.ecommerce.user.domain.model.User;
-// claude review : User.create 사용을 위해 UserRole import 추가
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.infrastructure.repository.InMemoryUserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +25,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("유저를 저장할 수 있다")
     void saveUser() {
-        // claude review : User 생성자 파라미터 수정
         User user = User.create("테스트유저", UserRole.CUSTOMER);
 
         User savedUser = userRepository.save(user);
@@ -39,7 +37,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("ID로 유저를 조회할 수 있다")
     void findById() {
-        // claude review : User 생성자 파라미터 수정
         User user = User.create("테스트유저", UserRole.CUSTOMER);
         User savedUser = userRepository.save(user);
 
@@ -52,7 +49,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("사용자명으로 중복 여부를 확인할 수 있다")
     void existsByUsername() {
-        // claude review : User 생성자 파라미터 수정
         User user = User.create("중복유저", UserRole.CUSTOMER);
         userRepository.save(user);
 
@@ -66,7 +62,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("전체 유저 수를 조회할 수 있다")
     void countAll() {
-        // claude review : User 생성자 파라미터 수정
         userRepository.save(User.create("유저1", UserRole.CUSTOMER));
         userRepository.save(User.create("유저2", UserRole.CUSTOMER));
         userRepository.save(User.create("유저3", UserRole.CUSTOMER));
@@ -79,7 +74,6 @@ class UserRepositoryTest {
     @Test
     @DisplayName("페이징을 적용하여 유저 목록을 조회할 수 있다")
     void findAllWithPage() {
-        // claude review : User 생성자 파라미터 수정
         for (int i = 1; i <= 10; i++) {
             userRepository.save(User.create("유저" + i, UserRole.CUSTOMER));
         }
