@@ -2,52 +2,34 @@ package hhplus.ecommerce.product.domain.repository;
 
 import hhplus.ecommerce.product.domain.model.ReservationStatus;
 import hhplus.ecommerce.product.domain.model.StockReservation;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface StockReservationRepository {
+public interface StockReservationRepository extends JpaRepository<StockReservation, Long> {
 
-    /**
-     * 재고 예약 등록
-     * @param stockReservation
-     * @return 재고 예약
-     */
-    StockReservation save(StockReservation stockReservation);
+    List<StockReservation> findByOrderId(Long orderId);
 
-    /**
-     * 재고 예약Id로  조회
-     * @param stockReservationId
-     * @return 재고 예약
-     */
-    Optional<StockReservation> findByStockReservationId(Long stockReservationId);
-
-    /**
-     * 상품옵션 ID 및 주문ID로 재고 예약 조회
-     * @param productOptionId
-     * @param orderId
-     * @return 재고 예약
-     */
     Optional<StockReservation> findByProductOptionIdAndOrderId(Long productOptionId, Long orderId);
 
-    /**
-     * 상품옵션에 걸려있는 재고 예약 목록 조회
-     * @param productOptionId
-     * @return 재고 예약 목록
-     */
-    List<StockReservation> findAllByProductOptionId(Long productOptionId);
+    List<StockReservation> findByProductOptionId(Long productOptionId);
 
-    /**
-     * 상품옵션에 걸려있는 예약중 상태의 재고 예약목록 조회
-     * @param productOptionId
-     * @return
-     */
-    List<StockReservation> findAllReservedByProductOptionId(Long productOptionId);
+    @Query("SELECT sr FROM StockReservation sr WHERE sr.productOptionId = :productOptionId AND sr.reservationStatus = :status")
+    List<StockReservation> findByProductOptionIdAndStatus(@Param("productOptionId") Long productOptionId,
+                                                           @Param("status") ReservationStatus status);
 
-    /**
-     * 예약상태에 따른 재고 예약 목록 조회
-     * @param reservationStatus
-     * @return 재고 예약 목록
-     */
-    List<StockReservation> findAllByReservationStatus(ReservationStatus reservationStatus);
+    @Query("SELECT sr FROM StockReservation sr WHERE sr.reservationStatus = 'RESERVED' AND sr.expiresAt < :currentTime")
+    List<StockReservation> findExpiredReservations(@Param("currentTime") LocalDateTime currentTime);
+
+    @Query("SELECT sr FROM StockReservation sr WHERE sr.orderId = :orderId AND sr.reservationStatus = :status")
+    List<StockReservation> findByOrderIdAndStatus(@Param("orderId") Long orderId, @Param("status") ReservationStatus status);
+
+    @Query("SELECT COALESCE(SUM(sr.reservedQuantity), 0) FROM StockReservation sr WHERE sr.productOptionId = :productOptionId AND sr.reservationStatus = 'RESERVED'")
+    int sumReservedQuantityByProductOptionId(@Param("productOptionId") Long productOptionId);
+
+    List<StockReservation> findByReservationStatus(ReservationStatus reservationStatus);
 }
