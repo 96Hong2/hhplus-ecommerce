@@ -3,8 +3,10 @@ package hhplus.ecommerce.product.domain.repository;
 import hhplus.ecommerce.product.domain.model.ReservationStatus;
 import hhplus.ecommerce.product.domain.model.StockReservation;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,4 +34,8 @@ public interface StockReservationRepository extends JpaRepository<StockReservati
     int sumReservedQuantityByProductOptionId(@Param("productOptionId") Long productOptionId);
 
     List<StockReservation> findByReservationStatus(ReservationStatus reservationStatus);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT sr FROM StockReservation sr WHERE sr.stockReservationId = :reservationId")
+    Optional<StockReservation> findByIdWithLock(@Param("reservationId") Long reservationId);
 }

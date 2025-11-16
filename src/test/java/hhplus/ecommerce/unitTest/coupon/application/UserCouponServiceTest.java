@@ -123,10 +123,9 @@ class UserCouponServiceTest {
         Long userId = 1L;
         Long couponId = 1L;
 
-        when(couponService.getCouponById(couponId)).thenReturn(testCoupon);
         when(userCouponRepository.findByUserIdAndCouponId(userId, couponId))
                 .thenReturn(Optional.empty());
-        when(userCouponRepository.incrementIssueCountIfAvailable(couponId, 100)).thenReturn(true);
+        when(couponService.getCouponByIdWithLock(couponId)).thenReturn(testCoupon);
         when(userCouponRepository.save(any(UserCoupon.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -135,8 +134,7 @@ class UserCouponServiceTest {
 
         // then
         assertThat(result).isNotNull();
-        verify(userCouponRepository, times(1))
-                .incrementIssueCountIfAvailable(couponId, 100);
+        verify(couponService, times(1)).getCouponByIdWithLock(couponId);
         verify(userCouponRepository, times(1)).save(any(UserCoupon.class));
     }
 
@@ -147,10 +145,25 @@ class UserCouponServiceTest {
         Long userId = 1L;
         Long couponId = 1L;
 
-        when(couponService.getCouponById(couponId)).thenReturn(testCoupon);
+        // 이미 최대 발급 수를 초과한 쿠폰 생성
+        Coupon fullCoupon = Coupon.create(
+                "만료된 쿠폰",
+                DiscountType.FIXED,
+                BigDecimal.valueOf(5000),
+                BigDecimal.valueOf(10000),
+                10,
+                LocalDateTime.now().minusDays(1),
+                LocalDateTime.now().plusDays(10),
+                1L
+        );
+        // 최대 발급 수만큼 발급 처리
+        for (int i = 0; i < 10; i++) {
+            fullCoupon.issue();
+        }
+
         when(userCouponRepository.findByUserIdAndCouponId(userId, couponId))
                 .thenReturn(Optional.empty());
-        when(userCouponRepository.incrementIssueCountIfAvailable(couponId, 100)).thenReturn(false);
+        when(couponService.getCouponByIdWithLock(couponId)).thenReturn(fullCoupon);
 
         // when & then
         assertThatThrownBy(() -> userCouponService.issueFirstComeCoupon(userId, couponId))

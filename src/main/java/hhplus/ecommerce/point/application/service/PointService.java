@@ -48,7 +48,7 @@ public class PointService {
 
         try {
             // 사용자 조회
-            User user = userRepository.findById(userId)
+            User user = userRepository.findByIdWithLock(userId)
                     .orElseThrow(() -> PointException.chargeFailed(userId, "사용자를 찾을 수 없습니다."));
 
             // 포인트 충전
@@ -89,7 +89,7 @@ public class PointService {
 
         try {
             // 사용자 조회
-            User user = userRepository.findById(userId)
+            User user = userRepository.findByIdWithLock(userId)
                     .orElseThrow(() -> PointException.useFailed(userId, "사용자를 찾을 수 없습니다."));
 
             // 사용 가능 여부 검증
@@ -121,8 +121,8 @@ public class PointService {
      */
     public List<PointHistory> getPointHistory(Long userId, TransactionType transactionType) {
         if (transactionType != null) {
-            return pointHistoryRepository.findByUserIdAndTransactionType(userId, transactionType);
+            return pointHistoryRepository.findByUserIdAndType(userId, transactionType);
         }
-        return pointHistoryRepository.findByUserId(userId);
+        return pointHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 }

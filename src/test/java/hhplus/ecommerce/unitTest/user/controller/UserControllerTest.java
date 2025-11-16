@@ -7,6 +7,7 @@ import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.presentation.controller.UserController;
 import hhplus.ecommerce.user.presentation.dto.request.UserRegistrationRequest;
+import hhplus.ecommerce.unitTest.user.fixtures.UserFixtures;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,7 @@ class UserControllerTest {
     @Test
     @DisplayName("유저 목록 조회 API 테스트")
     void getUserListWithPage() throws Exception {
-        User mockUser = new User(1L, "테스트유저", BigDecimal.ZERO, UserRole.CUSTOMER);
+        User mockUser = UserFixtures.userWithTimestamps(1L, "테스트유저", BigDecimal.ZERO, UserRole.CUSTOMER);
         PageResponse<User> mockPageResponse = new PageResponse<>(
                 List.of(mockUser),
                 0,
@@ -65,7 +66,7 @@ class UserControllerTest {
         request.setUsername("신규유저");
         request.setRole(UserRole.CUSTOMER);
 
-        User mockUser = new User(1L, "신규유저", BigDecimal.ZERO, UserRole.CUSTOMER);
+        User mockUser = UserFixtures.userWithTimestamps(1L, "신규유저", BigDecimal.ZERO, UserRole.CUSTOMER);
 
         when(userService.registerUser(any(UserRegistrationRequest.class)))
                 .thenReturn(mockUser);
@@ -80,7 +81,7 @@ class UserControllerTest {
     @Test
     @DisplayName("유저 포인트 잔액 조회 API 테스트")
     void getUserPointBalance() throws Exception {
-        User mockUser = new User(1L, "테스트유저", BigDecimal.valueOf(50000), UserRole.CUSTOMER);
+        User mockUser = UserFixtures.userWithTimestamps(1L, "테스트유저", BigDecimal.valueOf(50000), UserRole.CUSTOMER);
 
         when(userService.getUserById(anyLong()))
                 .thenReturn(mockUser);

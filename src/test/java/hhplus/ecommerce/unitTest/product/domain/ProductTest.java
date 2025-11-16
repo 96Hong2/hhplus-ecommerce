@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static hhplus.ecommerce.unitTest.support.DomainTestFixtures.*;
 
 public class ProductTest {
 
@@ -18,6 +19,8 @@ public class ProductTest {
         // when
         Product product = Product.create("testProduct", "testCategory", "testDescription",
                 "testImageUrl", BigDecimal.valueOf(10000), true);
+        setId(product, "productId", 1L);
+        initTimestamps(product);
 
         // then
         assertThat(product.getProductId()).isNotNull();

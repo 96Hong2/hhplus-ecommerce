@@ -1,24 +1,23 @@
 package hhplus.ecommerce.integrationTest;
 
+import hhplus.ecommerce.context.TestContainersConfiguration;
 import hhplus.ecommerce.coupon.application.service.CouponService;
 import hhplus.ecommerce.coupon.application.service.UserCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
+import hhplus.ecommerce.coupon.domain.repository.CouponRepository;
+import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
 import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,23 +32,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * JPA 기반 쿠폰 동시성 테스트
- * Testcontainers를 사용하여 실제 MySQL 환경에서 동시성 제어 검증
+ * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
  */
 @SpringBootTest
-@Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
+@Import(TestContainersConfiguration.class)
+@TestPropertySource(locations = "classpath:application-test.properties")
 class CouponConcurrencyTest {
-
-    @Container
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
-    }
 
     @Autowired
     private CouponService couponService;
@@ -60,13 +48,21 @@ class CouponConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CouponRepository couponRepository;
+
+    @Autowired
+    private UserCouponRepository userCouponRepository;
+
+    private Long adminId;
     private Long couponId;
     private List<Long> userIds;
 
     @BeforeEach
     void setUp() {
-        // 관리자 유저 생성 (쿠폰 생성용)
-        User admin = userRepository.save(User.create("admin", UserRole.ADMIN));
+        // 테스트용 관리자 생성
+        User admin = userRepository.save(User.create("쿠폰관리자", UserRole.ADMIN));
+        adminId = admin.getUserId();
 
         // 선착순 쿠폰 생성 (100개 한정)
         Coupon coupon = couponService.createCoupon(
@@ -84,8 +80,23 @@ class CouponConcurrencyTest {
         // 테스트용 유저 150명 생성
         userIds = new ArrayList<>();
         for (int i = 0; i < 150; i++) {
-            User user = userRepository.save(User.create("user" + i, UserRole.CUSTOMER));
+            User user = userRepository.save(User.create("쿠폰유저" + i, UserRole.CUSTOMER));
             userIds.add(user.getUserId());
+        }
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 테스트 후 생성된 데이터 정리 (외래키 순서 고려)
+        userCouponRepository.deleteAll(); // 사용자 쿠폰 먼저 삭제
+        if (couponId != null) {
+            couponRepository.deleteById(couponId); // 쿠폰 삭제
+        }
+        if (userIds != null && !userIds.isEmpty()) {
+            userRepository.deleteAllById(userIds); // 사용자 삭제
+        }
+        if (adminId != null) {
+            userRepository.deleteById(adminId); // 관리자 삭제
         }
     }
 

@@ -4,8 +4,8 @@ import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
 import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
-import hhplus.ecommerce.coupon.infrastructure.repository.CouponJpaRepository;
-import hhplus.ecommerce.coupon.infrastructure.repository.UserCouponJpaRepository;
+import hhplus.ecommerce.coupon.domain.repository.CouponRepository;
+import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,10 +40,10 @@ class CouponJpaRepositoriesTest {
     }
 
     @Autowired
-    private CouponJpaRepository couponJpaRepository;
+    private CouponRepository couponJpaRepository;
 
     @Autowired
-    private UserCouponJpaRepository userCouponJpaRepository;
+    private UserCouponRepository userCouponJpaRepository;
 
     private Coupon createValidCoupon(int maxIssue) {
         return Coupon.create(

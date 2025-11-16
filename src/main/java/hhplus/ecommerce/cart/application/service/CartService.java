@@ -85,13 +85,13 @@ public class CartService {
         if (cartRepository.findById(cartId).isEmpty()) {
             throw CartException.cartItemNotFound(cartId);
         }
-        cartRepository.delete(cartId);
+        cartRepository.deleteById(cartId);
     }
 
     /**
      * 사용자의 특정 상품 전체 삭제
      */
     public void removeByUserIdAndProductId(Long userId, Long productId) {
-        cartRepository.deleteByUserIdAndProductId(userId, productId);
+        cartRepository.deleteByUserIdAndProductOptionId(userId, productId);
     }
 }

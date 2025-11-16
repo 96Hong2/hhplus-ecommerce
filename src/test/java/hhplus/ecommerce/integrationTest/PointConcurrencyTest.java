@@ -1,14 +1,19 @@
 package hhplus.ecommerce.integrationTest;
 
+import hhplus.ecommerce.context.TestContainersConfiguration;
 import hhplus.ecommerce.point.application.service.PointService;
+import hhplus.ecommerce.point.domain.repository.PointHistoryRepository;
 import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
@@ -17,7 +22,13 @@ import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 포인트 동시성 테스트
+ * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
+ */
 @SpringBootTest
+@Import(TestContainersConfiguration.class)
+@TestPropertySource(locations = "classpath:application-test.properties")
 class PointConcurrencyTest {
 
     @Autowired
@@ -26,15 +37,28 @@ class PointConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PointHistoryRepository pointHistoryRepository;
+
     private Long userId;
 
     @BeforeEach
     void setUp() {
-        User user = User.create("동시성테스트유저", UserRole.CUSTOMER);
+        // 테스트용 사용자 생성
+        User user = User.create("포인트테스트유저", UserRole.CUSTOMER);
         User savedUser = userRepository.save(user);
         userId = savedUser.getUserId();
 
         pointService.chargePoint(userId, BigDecimal.valueOf(100000), "초기 충전");
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 테스트 후 생성된 데이터 정리
+        if (userId != null) {
+            pointHistoryRepository.deleteAll(); // 포인트 히스토리 먼저 삭제 (외래키 제약)
+            userRepository.deleteById(userId);
+        }
     }
 
     @Test
@@ -58,7 +82,7 @@ class PointConcurrencyTest {
         executorService.shutdown();
 
         User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getPointBalance()).isEqualTo(BigDecimal.valueOf(110000));
+        assertThat(user.getPointBalance()).isEqualByComparingTo(BigDecimal.valueOf(110000));
     }
 
     @Test
@@ -84,7 +108,7 @@ class PointConcurrencyTest {
         executorService.shutdown();
 
         User user = userRepository.findById(userId).orElseThrow();
-        assertThat(user.getPointBalance()).isEqualTo(BigDecimal.valueOf(50000));
+        assertThat(user.getPointBalance()).isEqualByComparingTo(BigDecimal.valueOf(50000));
     }
 
     @Test

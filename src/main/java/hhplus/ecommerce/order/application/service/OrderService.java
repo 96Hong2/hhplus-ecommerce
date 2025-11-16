@@ -176,7 +176,7 @@ public class OrderService {
      * 주문의 모든 아이템 조회
      */
     public List<OrderItem> getOrderItems(Long orderId) {
-        return orderItemRepository.findAllByOrderId(orderId);
+        return orderItemRepository.findByOrderId(orderId);
     }
 
     /**
@@ -249,7 +249,7 @@ public class OrderService {
      */
     public List<Order> getOrdersByUserId(Long userId, hhplus.ecommerce.order.domain.model.OrderStatus status) {
         if (status != null) {
-            return orderRepository.findByUserIdAndStatus(userId, status);
+            return orderRepository.findByUserIdAndOrderStatus(userId, status);
         }
         return orderRepository.findByUserId(userId);
     }

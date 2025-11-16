@@ -47,7 +47,7 @@ public class PaymentService {
         }
 
         // 2. 주문 항목 조회
-        List<OrderItem> orderItems = orderItemRepository.findAllByOrderId(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
         if (orderItems.isEmpty()) {
             throw OrderException.orderItemsEmpty();
         }

@@ -102,8 +102,9 @@ public class ProductOption {
     }
 
     private static void validatePriceAdjustment(BigDecimal priceAdjustment) {
-        if (priceAdjustment != null && priceAdjustment.equals(BigDecimal.ZERO) ) {
-            throw ProductException.creationFailed("옵션 변동 가격은 0원이 될 수 없습니다.");
+        // priceAdjustment가 null이면 안되지만, 0원은 허용 (가격 변동 없는 옵션)
+        if (priceAdjustment == null) {
+            throw ProductException.creationFailed("옵션 변동 가격은 필수입니다. (0원 허용)");
         }
     }
 

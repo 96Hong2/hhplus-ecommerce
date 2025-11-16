@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static hhplus.ecommerce.unitTest.support.DomainTestFixtures.*;
 
 public class OrderTest {
 
@@ -20,6 +21,7 @@ public class OrderTest {
         // when
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
                 BigDecimal.valueOf(2000), 1L);
+        setId(order, "orderId", 1L);
 
         // then
         assertThat(order.getOrderId()).isNotNull();

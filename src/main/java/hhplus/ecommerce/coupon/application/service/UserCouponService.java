@@ -49,26 +49,18 @@ public class UserCouponService {
     /**
      * 선착순 쿠폰 발급 (동시성 제어)
      *
-     * @Transactional: 중복 체크 + CAS 발급 수 증가 + UserCoupon 저장이 원자적으로 처리되어야 함
+     * @Transactional: 중복 체크 + 발급 수 증가 + UserCoupon 저장이 원자적으로 처리되어야 함
      */
     @Transactional
     public UserCoupon issueFirstComeCoupon(Long userId, Long couponId) {
-        Coupon coupon = couponService.getCouponById(couponId);
-
         // 중복 발급 체크
         if (userCouponRepository.findByUserIdAndCouponId(userId, couponId).isPresent()) {
             throw CouponException.couponAlreadyIssued(userId, couponId);
         }
 
-        // AtomicInteger CAS 방식으로 발급 수 증가 (동시성 제어)
-        boolean issued = userCouponRepository.incrementIssueCountIfAvailable(
-                couponId,
-                coupon.getMaxIssueCount()
-        );
-
-        if (!issued) {
-            throw CouponException.couponIssueLimitExceeded(couponId);
-        }
+        // Pessimistic Lock으로 Coupon 조회 및 발급 수 증가 (동시성 제어)
+        Coupon coupon = couponService.getCouponByIdWithLock(couponId);
+        coupon.issue();
 
         UserCoupon userCoupon = UserCoupon.create(
                 userId,

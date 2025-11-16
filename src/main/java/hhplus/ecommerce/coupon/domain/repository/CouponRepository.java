@@ -1,6 +1,7 @@
 package hhplus.ecommerce.coupon.domain.repository;
 
 import hhplus.ecommerce.coupon.domain.model.Coupon;
+import hhplus.ecommerce.coupon.domain.model.DiscountType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -22,4 +23,7 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     @Query("SELECT c FROM Coupon c WHERE c.issuedCount < c.maxIssueCount")
     List<Coupon> findIssuableCoupons();
+
+    // 할인 타입별 쿠폰 조회
+    List<Coupon> findByDiscountType(DiscountType discountType);
 }

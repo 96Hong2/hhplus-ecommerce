@@ -2,7 +2,7 @@ package hhplus.ecommerce.unitTest.point.repository;
 
 import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
-import hhplus.ecommerce.point.infrastructure.repository.PointHistoryJpaRepository;
+import hhplus.ecommerce.point.domain.repository.PointHistoryRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ class PointHistoryJpaRepositoryTest {
     }
 
     @Autowired
-    private PointHistoryJpaRepository pointHistoryJpaRepository;
+    private PointHistoryRepository pointHistoryJpaRepository;
 
     @Test
     @DisplayName("JPA: 포인트 이력 저장 및 사용자/타입/주문별 조회")

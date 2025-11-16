@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static hhplus.ecommerce.unitTest.support.DomainTestFixtures.*;
 
 class PointHistoryTest {
 
@@ -27,6 +28,7 @@ class PointHistoryTest {
         PointHistory pointHistory = new PointHistory(
                 pointHistoryId, userId, transactionType, amount, balanceAfter, orderId, description
         );
+        initTimestamps(pointHistory);
 
         // then
         assertThat(pointHistory.getPointHistoryId()).isEqualTo(pointHistoryId);
@@ -52,6 +54,7 @@ class PointHistoryTest {
 
         // when
         PointHistory pointHistory = new PointHistory(pointHistoryId, userId, amount, balanceAfter, description);
+        initTimestamps(pointHistory);
 
         // then
         assertThat(pointHistory.getPointHistoryId()).isEqualTo(pointHistoryId);

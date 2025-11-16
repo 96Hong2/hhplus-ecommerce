@@ -5,8 +5,8 @@ import hhplus.ecommerce.order.domain.model.OrderItem;
 import hhplus.ecommerce.order.domain.model.OrderItemStatus;
 import hhplus.ecommerce.order.domain.model.OrderStatus;
 import hhplus.ecommerce.order.domain.model.PaymentMethod;
-import hhplus.ecommerce.order.infrastructure.repository.OrderItemJpaRepository;
-import hhplus.ecommerce.order.infrastructure.repository.OrderJpaRepository;
+import hhplus.ecommerce.order.domain.repository.OrderItemRepository;
+import hhplus.ecommerce.order.domain.repository.OrderRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,10 +41,10 @@ class OrderJpaRepositoryTest {
     }
 
     @Autowired
-    private OrderJpaRepository orderJpaRepository;
+    private OrderRepository orderJpaRepository;
 
     @Autowired
-    private OrderItemJpaRepository orderItemJpaRepository;
+    private OrderItemRepository orderItemJpaRepository;
 
     @Test
     @DisplayName("JPA: 주문 저장, 주문번호 조회, 사용자별/상태별 조회")
@@ -61,10 +61,10 @@ class OrderJpaRepositoryTest {
         Optional<Order> byOrderNumber = orderJpaRepository.findByOrderNumber(orderNumber1);
         assertThat(byOrderNumber).isPresent();
 
-        List<Order> byUser = orderJpaRepository.findByUserIdOrderByCreatedAtDesc(1L);
+        List<Order> byUser = orderJpaRepository.findByUserId(1L);
         assertThat(byUser).hasSize(2);
 
-        List<Order> byUserAndStatus = orderJpaRepository.findByUserIdAndStatus(1L, OrderStatus.PENDING);
+        List<Order> byUserAndStatus = orderJpaRepository.findByUserIdAndOrderStatus(1L, OrderStatus.PENDING);
         assertThat(byUserAndStatus).hasSize(2);
 
         // 특정 상품 옵션의 최근 주문 조회를 위한 OrderItem 저장

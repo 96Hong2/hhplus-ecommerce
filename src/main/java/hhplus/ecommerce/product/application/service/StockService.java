@@ -32,18 +32,13 @@ public class StockService {
      * @return 재고 정보 (물리적 재고, 예약된 재고, 판매 가능 재고, 품절 여부)
      */
     public StockResponse getStock(Long productOptionId) {
-        ProductOption productOption = productOptionRepository.findById(productOptionId)
+        ProductOption productOption = productOptionRepository.findByIdWithLock(productOptionId)
                 .orElseThrow(() -> ProductException.productOptionNotFound(productOptionId));
 
-        // RESERVED 상태인 예약 재고만 조회 (확정/해제된 예약은 제외)
-        List<StockReservation> stockReservationList = stockReservationRepository.findAllReservedByProductOptionId(productOptionId);
-
         int physicalQuantity = productOption.getStockQuantity();
-        int reservedQuantity = stockReservationList.stream()
-                .map(StockReservation::getReservedQuantity)
-                .reduce(0, Integer::sum);
-
-        int availableQuantity = physicalQuantity - reservedQuantity;
+        // 예약 시점에 물리 재고를 즉시 차감하므로 reservedQuantity는 0으로 간주
+        int reservedQuantity = 0;
+        int availableQuantity = physicalQuantity;
 
         if (availableQuantity < 0) {
             // 예약된 재고량이 실제 재고량보다 많습니다. [실제 재고량 : %d, 예약 재고량 : %d]
@@ -69,14 +64,16 @@ public class StockService {
      */
     @Transactional
     public StockHistory updateStock(Long productOptionId, int amount, Long updatedBy, String description) {
-        ProductOption productOption = productOptionRepository.findById(productOptionId)
+        if (amount == 0) {
+            throw StockException.invalidStockAmount(amount);
+        }
+
+        ProductOption productOption = productOptionRepository.findByIdWithLock(productOptionId)
                 .orElseThrow(() -> ProductException.productOptionNotFound(productOptionId));
 
         StockHistory stockHistory;
 
-        if (amount == 0) {
-            throw StockException.invalidStockAmount(amount);
-        } else if (amount > 0) {
+        if (amount > 0) {
             // 재고 추가
             productOption.increaseStock(amount);
             stockHistory = StockHistory.forIncrease(productOptionId, amount, productOption.getStockQuantity(), description, updatedBy);
@@ -108,19 +105,18 @@ public class StockService {
      */
     @Transactional
     public StockReservation reserveStock(Long orderId, Long productOptionId, int quantity) {
-        // 상품옵션 존재 검증
-        productOptionRepository.findById(productOptionId)
-                .orElseThrow(() -> ProductException.productOptionNotFound(productOptionId));
-
-        // 1. 재고 확인
-        StockResponse stockResponse = getStock(productOptionId);
-        if (stockResponse.getAvailableQuantity() < quantity) {
-            throw StockException.stockQuantityInsufficient(productOptionId, stockResponse.getAvailableQuantity(), quantity);
+        int maxRetry = 3;
+        for (int attempt = 1; attempt <= maxRetry; attempt++) {
+            int updated = productOptionRepository.decreaseIfEnough(productOptionId, quantity);
+            if (updated == 1) {
+                StockReservation reservation = StockReservation.create(productOptionId, orderId, quantity);
+                return stockReservationRepository.save(reservation);
+            }
+            if (updated == 0) {
+                throw StockException.stockQuantityInsufficient(productOptionId, quantity, 0);
+            }
         }
-
-        // 2. 재고 예약 생성 및 저장 (15분 타임아웃)
-        StockReservation reservation = StockReservation.create(productOptionId, orderId, quantity);
-        return stockReservationRepository.save(reservation);
+        throw ProductException.productOptionNotFound(productOptionId);
     }
 
     /**
@@ -133,17 +129,11 @@ public class StockService {
     @Transactional
     public StockReservation confirmStockReservation(Long reservationId) {
         // 1. 예약 정보 조회 및 상태 확인 (RESERVED 상태여야 함)
-        StockReservation stockReservation = stockReservationRepository.findByStockReservationId(reservationId)
+        StockReservation stockReservation = stockReservationRepository.findByIdWithLock(reservationId)
                 .orElseThrow(() -> StockException.stockReservationNotFound(reservationId));
 
-        // 2. 예약 상태를 CONFIRMED로 변경
-        stockReservation.confirm();
-
-        // 3. ProductOption의 physicalStock 감소
-        ProductOption productOption = productOptionRepository.findById(stockReservation.getProductOptionId())
-                .orElseThrow(() -> ProductException.productOptionNotFound(stockReservation.getProductOptionId()));
-        productOption.decreaseStock(stockReservation.getReservedQuantity());
-        productOptionRepository.save(productOption);
+        // 2. 예약 상태를 CONFIRMED로 변경 (불변 엔티티 패턴: 반환값 재할당)
+        stockReservation = stockReservation.confirm();
 
         return stockReservationRepository.save(stockReservation);
     }
@@ -158,7 +148,7 @@ public class StockService {
     @Transactional
     public StockReservation releaseStockReservation(Long reservationId) {
         // 1. 예약 정보 조회
-        StockReservation stockReservation = stockReservationRepository.findByStockReservationId(reservationId)
+        StockReservation stockReservation = stockReservationRepository.findByIdWithLock(reservationId)
                 .orElseThrow(() -> StockException.stockReservationNotFound(reservationId));
 
         if (stockReservation.isConfirmed()) {
@@ -169,8 +159,11 @@ public class StockService {
             throw StockException.stockReservationAlreadyReleased(reservationId);
         }
 
-        // 2. 예약 상태를 RELEASED로 변경
-        stockReservation.release();
+        // 2. 예약 상태를 RELEASED로 변경 (불변 엔티티 패턴: 반환값 재할당)
+        stockReservation = stockReservation.release();
+
+        // 3. 물리 재고 복구 (원자적 증가)
+        productOptionRepository.increaseStock(stockReservation.getProductOptionId(), stockReservation.getReservedQuantity());
 
         return stockReservationRepository.save(stockReservation);
     }
@@ -180,7 +173,7 @@ public class StockService {
      * @return 타임아웃이 지난 RESERVED 상태의 예약 목록
      */
     public List<StockReservation> getExpiredReservations() {
-        return stockReservationRepository.findAllByReservationStatus(ReservationStatus.RESERVED).stream()
+        return stockReservationRepository.findByReservationStatus(ReservationStatus.RESERVED).stream()
                 .filter(StockReservation::isExpired)
                 .collect(Collectors.toList());
     }

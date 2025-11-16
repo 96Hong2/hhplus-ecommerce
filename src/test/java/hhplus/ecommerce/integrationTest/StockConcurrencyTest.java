@@ -1,5 +1,6 @@
 package hhplus.ecommerce.integrationTest;
 
+import hhplus.ecommerce.context.TestContainersConfiguration;
 import hhplus.ecommerce.product.application.service.ProductService;
 import hhplus.ecommerce.product.application.service.StockService;
 import hhplus.ecommerce.product.domain.model.Product;
@@ -10,14 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
@@ -28,24 +24,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * JPA 기반 재고 동시성 테스트
- * Testcontainers를 사용하여 실제 MySQL 환경에서 동시성 제어 검증
+ * 재고 동시성 테스트
+ * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
  */
 @SpringBootTest
-@Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
+@Import(TestContainersConfiguration.class)
+@TestPropertySource(locations = "classpath:application-test.properties")
 class StockConcurrencyTest {
-
-    @Container
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0");
-
-    @DynamicPropertySource
-    static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
-    }
 
     @Autowired
     private ProductService productService;
