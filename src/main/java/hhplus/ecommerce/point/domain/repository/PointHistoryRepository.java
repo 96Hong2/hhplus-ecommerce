@@ -2,57 +2,32 @@ package hhplus.ecommerce.point.domain.repository;
 
 import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-// claude review : findById, findByOrderId를 위해 Optional import 추가
 import java.util.Optional;
 
-public interface PointHistoryRepository {
+public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
 
-    /**
-     * 포인트 거래 이력 저장
-     * */
-    PointHistory save(PointHistory pointHistory);
+    @Query("SELECT ph FROM PointHistory ph WHERE ph.userId = :userId ORDER BY ph.createdAt DESC")
+    List<PointHistory> findByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId);
 
-    /**
-     * 유저의 포인트 히스토리를 조회한다.
-     * */
-    List<PointHistory> findByUserId(Long userId);
+    @Query("SELECT ph FROM PointHistory ph WHERE ph.userId = :userId AND ph.transactionType = :type ORDER BY ph.createdAt DESC")
+    List<PointHistory> findByUserIdAndType(@Param("userId") Long userId, @Param("type") TransactionType type);
 
-    /**
-     * 유저의 거래 타입별 내역을 조회한다.
-     * */
-    List<PointHistory> findByUserIdAndTransactionType(Long userId, TransactionType transactionType);
+    @Query("SELECT ph FROM PointHistory ph WHERE ph.orderId = :orderId")
+    List<PointHistory> findByOrderId(@Param("orderId") Long orderId);
 
-    /**
-     * 페이징하여 유저의 거래 내역을 조회한다.
-     * */
-    List<PointHistory> findByUserIdWithPaging(Long userId, int page, int size);
+    Page<PointHistory> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    /**
-     * 페이징하여 유저의 거래 타입별 내역을 조회한다.
-     * */
-    List<PointHistory> findByUserIdAndTransactionTypeWithPaging(Long userId, TransactionType transactionType, int page, int size);
+    Page<PointHistory> findByUserIdAndTransactionTypeOrderByCreatedAtDesc(Long userId, TransactionType transactionType, Pageable pageable);
 
-    /**
-     * 유저의 포인트 거래 내역이 몇 개 있는지 조회한다.
-     * */
     long countByUserId(Long userId);
 
-    /**
-     * 유저의 거래 타입별 내역이 몇 개 있는지 조회한다.
-     * */
     long countByUserIdAndTransactionType(Long userId, TransactionType transactionType);
-
-    // claude review : 테스트를 위해 추가된 메서드
-    /**
-     * ID로 포인트 거래 내역을 조회한다.
-     * */
-    Optional<PointHistory> findById(Long pointHistoryId);
-
-    /**
-     * 주문 ID로 포인트 거래 내역을 조회한다.
-     * */
-    Optional<PointHistory> findByOrderId(Long orderId);
 }
 

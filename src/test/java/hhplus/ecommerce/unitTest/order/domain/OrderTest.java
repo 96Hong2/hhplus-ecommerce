@@ -19,7 +19,7 @@ public class OrderTest {
     void createOrder() {
         // when
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                BigDecimal.valueOf(2000), BigDecimal.valueOf(5000), 1L);
+                BigDecimal.valueOf(2000), 1L);
 
         // then
         assertThat(order.getOrderId()).isNotNull();
@@ -27,9 +27,8 @@ public class OrderTest {
         assertThat(order.getUserId()).isEqualTo(1L);
         assertThat(order.getTotalAmount()).isEqualByComparingTo(BigDecimal.valueOf(20000));
         assertThat(order.getDiscountAmount()).isEqualByComparingTo(BigDecimal.valueOf(2000));
-        assertThat(order.getUsedPoints()).isEqualByComparingTo(BigDecimal.valueOf(5000));
-        // 최종 금액 = 20000 - 2000 - 5000 = 13000
-        assertThat(order.getFinalAmount()).isEqualByComparingTo(BigDecimal.valueOf(13000));
+        // 최종 금액 = 20000 - 2000 = 18000
+        assertThat(order.getFinalAmount()).isEqualByComparingTo(BigDecimal.valueOf(18000));
         assertThat(order.getCouponId()).isEqualTo(1L);
         assertThat(order.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.getCreatedAt()).isNotNull();
@@ -43,11 +42,10 @@ public class OrderTest {
     void createOrderWithoutDiscountAndPoints() {
         // when
         Order order = Order.create("ORD20251107002", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // then
         assertThat(order.getDiscountAmount()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(order.getUsedPoints()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(order.getFinalAmount()).isEqualByComparingTo(BigDecimal.valueOf(20000));
     }
 
@@ -56,12 +54,12 @@ public class OrderTest {
     void createOrderWithNullOrderNumber() {
         // when & then
         assertThatThrownBy(() -> Order.create(null, 1L, BigDecimal.valueOf(20000),
-                null, null, null))
+                null, null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("주문번호는 필수값입니다.");
 
         assertThatThrownBy(() -> Order.create("", 1L, BigDecimal.valueOf(20000),
-                null, null, null))
+                null, null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("주문번호는 필수값입니다.");
     }
@@ -71,7 +69,7 @@ public class OrderTest {
     void createOrderWithNullUserId() {
         // when & then
         assertThatThrownBy(() -> Order.create("ORD20251107001", null, BigDecimal.valueOf(20000),
-                null, null, null))
+                null, null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("유저ID는 필수값입니다.");
     }
@@ -81,12 +79,12 @@ public class OrderTest {
     void createOrderWithInvalidTotalAmount() {
         // when & then
         assertThatThrownBy(() -> Order.create("ORD20251107001", 1L, BigDecimal.ZERO,
-                null, null, null))
+                null, null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("총 합계값이 유효하지 않습니다.");
 
         assertThatThrownBy(() -> Order.create("ORD20251107001", 1L, BigDecimal.valueOf(-1000),
-                null, null, null))
+                null, null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("총 합계값이 유효하지 않습니다.");
     }
@@ -96,27 +94,17 @@ public class OrderTest {
     void createOrderWithNegativeDiscountAmount() {
         // when & then
         assertThatThrownBy(() -> Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                BigDecimal.valueOf(-1000), null, null))
+                BigDecimal.valueOf(-1000), null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("할인 금액은 0원 이상이어야 합니다.");
     }
 
     @Test
-    @DisplayName("주문 생성 시 사용 포인트가 음수면 예외가 발생한다.")
-    void createOrderWithNegativeUsedPoints() {
-        // when & then
-        assertThatThrownBy(() -> Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, BigDecimal.valueOf(-1000), null))
-                .isInstanceOf(OrderException.class)
-                .hasMessageContaining("사용 포인트는 0원 이상이어야 합니다.");
-    }
-
-    @Test
     @DisplayName("주문 생성 시 최종 결제 금액이 0원 미만이면 예외가 발생한다.")
     void createOrderWithNegativeFinalAmount() {
-        // when & then - 총금액 10000원, 할인 5000원, 포인트 6000원 사용 -> 최종 금액 -1000원
+        // when & then - 총금액 10000원, 할인 11000원 -> 최종 금액 -1000원
         assertThatThrownBy(() -> Order.create("ORD20251107001", 1L, BigDecimal.valueOf(10000),
-                BigDecimal.valueOf(5000), BigDecimal.valueOf(6000), null))
+                BigDecimal.valueOf(11000), null))
                 .isInstanceOf(OrderException.class)
                 .hasMessageContaining("최종 결제 금액이 0원 미만입니다.");
     }
@@ -126,7 +114,7 @@ public class OrderTest {
     void updateOrderStatus() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // when
         Order paidOrder = order.updateStatus(OrderStatus.PAID);
@@ -144,7 +132,7 @@ public class OrderTest {
     void updateOrderStatusWithNull() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // when & then
         assertThatThrownBy(() -> order.updateStatus(null))
@@ -157,7 +145,7 @@ public class OrderTest {
     void updateOrderStatusWithSameStatus() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // when & then
         assertThatThrownBy(() -> order.updateStatus(OrderStatus.PENDING))
@@ -169,7 +157,7 @@ public class OrderTest {
     void payOrder() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // when
         Order paidOrder = order.pay();
@@ -184,7 +172,7 @@ public class OrderTest {
     void payAlreadyPaidOrder() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
         Order paidOrder = order.pay();
 
         // when & then
@@ -198,7 +186,7 @@ public class OrderTest {
     void payCancelledOrder() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
         Order cancelledOrder = order.cancel();
 
         // when & then
@@ -230,7 +218,7 @@ public class OrderTest {
     void cancelOrder() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // when
         Order cancelledOrder = order.cancel();
@@ -245,7 +233,7 @@ public class OrderTest {
     void cancelAlreadyCancelledOrder() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
         Order cancelledOrder = order.cancel();
 
         // when & then
@@ -259,7 +247,7 @@ public class OrderTest {
     void cancelPaidOrder() {
         // given
         Order order = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
         Order paidOrder = order.pay();
 
         // when & then
@@ -315,7 +303,7 @@ public class OrderTest {
     void checkOrderStatus() {
         // given
         Order pendingOrder = Order.create("ORD20251107001", 1L, BigDecimal.valueOf(20000),
-                null, null, null);
+                null, null);
 
         // when & then
         assertThat(pendingOrder.isPending()).isTrue();

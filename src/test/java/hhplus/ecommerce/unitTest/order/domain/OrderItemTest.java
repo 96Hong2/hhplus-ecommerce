@@ -22,13 +22,13 @@ class OrderItemTest {
         Long productOptionId = 200L;
         String productName = "테스트 상품";
         String optionName = "사이즈-M";
-        BigDecimal productPrice = new BigDecimal("10000");
+        BigDecimal unitPrice = new BigDecimal("10000");
         int quantity = 2;
 
         // when
         OrderItem orderItem = new OrderItem(
             orderId, productId, productOptionId,
-            productName, optionName, productPrice, quantity
+            productName, optionName, unitPrice, quantity
         );
 
         // then
@@ -38,7 +38,7 @@ class OrderItemTest {
         assertThat(orderItem.getProductOptionId()).isEqualTo(productOptionId);
         assertThat(orderItem.getProductName()).isEqualTo(productName);
         assertThat(orderItem.getOptionName()).isEqualTo(optionName);
-        assertThat(orderItem.getProductPrice()).isEqualTo(productPrice);
+        assertThat(orderItem.getUnitPrice()).isEqualTo(unitPrice);
         assertThat(orderItem.getQuantity()).isEqualTo(quantity);
         assertThat(orderItem.getSubtotal()).isEqualTo(new BigDecimal("20000"));
         assertThat(orderItem.getItemStatus()).isEqualTo(OrderItemStatus.PREPARING);
@@ -53,13 +53,13 @@ class OrderItemTest {
         Long productOptionId = 200L;
         String productName = "테스트 상품";
         String optionName = "사이즈-M";
-        BigDecimal productPrice = new BigDecimal("10000");
+        BigDecimal unitPrice = new BigDecimal("10000");
         int quantity = 2;
 
         // when & then
         assertThatThrownBy(() -> new OrderItem(
             orderId, productId, productOptionId,
-            productName, optionName, productPrice, quantity
+            productName, optionName, unitPrice, quantity
         ))
             .isInstanceOf(OrderException.class)
             .hasMessageContaining("주문 ID는 필수입니다");
@@ -165,13 +165,13 @@ class OrderItemTest {
     @DisplayName("subtotal 계산 검증")
     void validateSubtotalCalculation() {
         // given
-        BigDecimal productPrice = new BigDecimal("15000");
+        BigDecimal unitPrice = new BigDecimal("15000");
         int quantity = 3;
 
         // when
         OrderItem orderItem = new OrderItem(
             1L, 100L, 200L,
-            "테스트 상품", "사이즈-L", productPrice, quantity
+            "테스트 상품", "사이즈-L", unitPrice, quantity
         );
 
         // then

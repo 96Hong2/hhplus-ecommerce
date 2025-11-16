@@ -4,6 +4,7 @@ import hhplus.ecommerce.order.domain.model.OrderItemStatus;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
 @Getter
 @RequiredArgsConstructor
 public class OrderItemResponse {
@@ -11,6 +12,6 @@ public class OrderItemResponse {
     private final String productName;
     private final String optionName;
     private final Integer quantity;
-    private final Long price;
+    private final BigDecimal price;
     private final OrderItemStatus itemStatus;
 }

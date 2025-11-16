@@ -1,6 +1,7 @@
 package hhplus.ecommerce.coupon.presentation.dto.response;
 
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -16,7 +17,7 @@ public class UserCouponResponse {
     private final DiscountType discountType;
     private final BigDecimal discountValue;
     private final BigDecimal minOrderAmount;
-    private final Boolean isUsed;
+    private final UserCouponStatus status;
     private final LocalDateTime usedAt;
     private final LocalDateTime issuedAt;
     private final LocalDateTime validFrom;

@@ -1,5 +1,6 @@
 package hhplus.ecommerce.product.presentation.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -15,6 +16,7 @@ public class ProductListResponse {
     private final String description;
     private final String imageUrl;
     private final BigDecimal price;
+    @JsonProperty("is_exposed")
     private final boolean isExposed;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;

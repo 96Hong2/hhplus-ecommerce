@@ -1,5 +1,6 @@
 package hhplus.ecommerce.product.presentation.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -26,5 +27,6 @@ public class ProductOptionRegisterRequest {
     @Min(value = 0, message = "재고 수량은 0 이상이어야 합니다.")
     private int stockQuantity;
 
+    @JsonProperty("is_exposed")
     private boolean isExposed;
 }

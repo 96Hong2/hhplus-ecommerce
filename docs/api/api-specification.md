@@ -135,7 +135,7 @@
         "productOptionId": 1,
         "optionName": "사이즈-M",
         "priceAdjustment": 10000,
-        "soldOutFlag": false
+        "isSoldOut": false
       }
     ]
   }
@@ -153,7 +153,7 @@
   "category": "카테고리",
   "description": "설명",
   "imageUrl": "이미지 URL",
-  "exposeFlag": true
+  "isExposed": true
 }
 ```
 
@@ -182,7 +182,7 @@
     "physicalStock": 100,
     "reservedStock": 10,
     "availableStock": 90,
-    "soldOutFlag": false
+    "isSoldOut": false
   }
 }
 ```
@@ -371,7 +371,6 @@
       "quantity": 2
     }
   ],
-  "usedPoints": 5000.00,
   "couponId": 1
 }
 ```
@@ -388,7 +387,6 @@
     "totalAmount": 20000,
     "discountAmount": 2000,
     "finalAmount": 13000,
-    "usedPoints": 5000,
     "expiresAt": "2025-11-02T12:15:00"
   }
 }
@@ -468,10 +466,12 @@
 
 ```json
 {
-  "paymentMethod": "신용카드",
-  "usedPoints": 5000.00
+  "paymentMethod": "CREDIT"
 }
 ```
+
+결제 수단
+- `CREDIT`, `CHECK`, `CASH`, `KAKAO`
 
 
 ***
@@ -507,7 +507,24 @@
 
 #### 유저 쿠폰 조회
 
-`GET /api/coupons/user/{userId}?isUsed=false`
+`GET /api/coupons/user/{userId}?status=ACTIVE`
+
+응답 예시
+
+```json
+[
+  {
+    "userCouponId": 10,
+    "couponId": 3,
+    "couponName": "10% 할인",
+    "discountType": "PERCENTAGE",
+    "discountValue": 10.0,
+    "status": "ACTIVE",
+    "isUsed": false,
+    "issuedAt": "2025-11-11T10:00:00"
+  }
+]
+```
 
 #### 쿠폰 발행
 

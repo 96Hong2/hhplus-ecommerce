@@ -1,22 +1,51 @@
 package hhplus.ecommerce.point.domain.model;
 
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "point_histories", indexes = {
+    @Index(name = "idx_user_created", columnList = "user_id, created_at"),
+    @Index(name = "idx_created_at", columnList = "created_at"),
+    @Index(name = "idx_user_type_created", columnList = "user_id, transaction_type, created_at")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointHistory {
 
-    private final Long pointHistoryId;
-    private final Long userId;
-    private final TransactionType transactionType;
-    private final BigDecimal amount;
-    private final BigDecimal balanceAfter; // 거래 후 잔액 스냅샷
-    private final Long orderId; // 사용 시에만 존재
-    private final String description;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime updatedAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long pointHistoryId;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type", nullable = false, length = 20)
+    private TransactionType transactionType;
+
+    @Column(name = "amount", nullable = false, precision = 15, scale = 2)
+    private BigDecimal amount;
+
+    @Column(name = "balance_after", nullable = false, precision = 15, scale = 2)
+    private BigDecimal balanceAfter;
+
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "description", length = 200)
+    private String description;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     // 충전 생성자
     public PointHistory(Long pointHistoryId, Long userId,
@@ -40,7 +69,5 @@ public class PointHistory {
         this.balanceAfter = balanceAfter;
         this.orderId = orderId;
         this.description = description;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 }

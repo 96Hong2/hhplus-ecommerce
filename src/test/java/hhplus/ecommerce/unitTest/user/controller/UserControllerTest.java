@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
 import hhplus.ecommerce.user.application.service.UserService;
 import hhplus.ecommerce.user.domain.model.User;
-// claude review : User 생성자와 UserRegistrationRequest 사용을 위해 UserRole import 추가
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.presentation.controller.UserController;
 import hhplus.ecommerce.user.presentation.dto.request.UserRegistrationRequest;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// claude review : Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,7 +40,6 @@ class UserControllerTest {
     @Test
     @DisplayName("유저 목록 조회 API 테스트")
     void getUserListWithPage() throws Exception {
-        // claude review : User 생성자 파라미터 수정
         User mockUser = new User(1L, "테스트유저", BigDecimal.ZERO, UserRole.CUSTOMER);
         PageResponse<User> mockPageResponse = new PageResponse<>(
                 List.of(mockUser),
@@ -64,7 +61,6 @@ class UserControllerTest {
     @Test
     @DisplayName("유저 등록 API 테스트")
     void registerUser() throws Exception {
-        // claude review : setRole은 UserRole 타입, User 생성자 파라미터 수정
         UserRegistrationRequest request = new UserRegistrationRequest();
         request.setUsername("신규유저");
         request.setRole(UserRole.CUSTOMER);
@@ -84,7 +80,6 @@ class UserControllerTest {
     @Test
     @DisplayName("유저 포인트 잔액 조회 API 테스트")
     void getUserPointBalance() throws Exception {
-        // claude review : User 생성자 파라미터 수정
         User mockUser = new User(1L, "테스트유저", BigDecimal.valueOf(50000), UserRole.CUSTOMER);
 
         when(userService.getUserById(anyLong()))

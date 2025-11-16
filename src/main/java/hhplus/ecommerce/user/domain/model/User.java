@@ -2,27 +2,58 @@ package hhplus.ecommerce.user.domain.model;
 
 import hhplus.ecommerce.common.domain.constants.BusinessConstants;
 import hhplus.ecommerce.common.domain.exception.UserException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "users", indexes = {
+    @Index(name = "idx_username_deleted", columnList = "username, is_deleted"),
+    @Index(name = "idx_id_role_deleted", columnList = "id, role, is_deleted")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
-    private final Long userId;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long userId;
+
+    @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
+
+    @Column(name = "point_balance", nullable = false, precision = 15, scale = 2)
     private BigDecimal pointBalance;
-    private final UserRole role;
-    private final LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    private UserRole role;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1)")
+    private boolean isDeleted;
+
+    // 일반 생성자 (도메인 로직용)
     public User(Long userId, String username, BigDecimal pointBalance, UserRole role) {
         this.userId = userId;
         this.username = username;
         this.pointBalance = pointBalance;
         this.role = role;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.isDeleted = false;
     }
 
     /**
@@ -56,7 +87,6 @@ public class User {
         }
 
         this.pointBalance = this.pointBalance.subtract(amount);
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -75,12 +105,18 @@ public class User {
         }
 
         this.pointBalance = this.pointBalance.add(amount);
-        this.updatedAt = LocalDateTime.now();
     }
 
     private void validateAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw UserException.creationFailed("금액은 0보다 커야 합니다.");
         }
+    }
+
+    /**
+     * 유저를 논리 삭제한다.
+     */
+    public void delete() {
+        this.isDeleted = true;
     }
 }

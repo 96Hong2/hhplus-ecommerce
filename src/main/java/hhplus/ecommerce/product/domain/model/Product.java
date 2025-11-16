@@ -1,29 +1,65 @@
 package hhplus.ecommerce.product.domain.model;
 
 import hhplus.ecommerce.common.domain.exception.ProductException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "products", indexes = {
+    @Index(name = "idx_exposed_deleted_category", columnList = "is_exposed, is_deleted, category"),
+    @Index(name = "idx_exposed_deleted_created", columnList = "is_exposed, is_deleted, created_at")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product {
 
-    static AtomicLong sequence = new AtomicLong(1);
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long productId;
 
-    private final Long productId;
+    @Column(name = "product_name", nullable = false, length = 200)
     private String productName;
+
+    @Column(name = "category", nullable = false, length = 100)
     private String category;
+
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    // 기본 가격
+    @Column(name = "price", nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
-    private long salesCount; // 판매량 (주문 완료 시 증가)
+
+    // 판매량은 popular_products 테이블에서 별도 관리 (통계용)
+    @Transient
+    private long salesCount;
+
+    @Column(name = "is_exposed", nullable = false, columnDefinition = "TINYINT(1)")
     private boolean isExposed;
+
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1)")
     private boolean isDeleted;
-    private final LocalDateTime createdAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // 일반 생성자 (도메인 로직용)
     private Product(Long productId, String productName, String category, String description, String imageUrl, BigDecimal price, long salesCount, boolean isExposed) {
         this.productId = productId;
         this.productName = productName;
@@ -34,8 +70,6 @@ public class Product {
         this.salesCount = salesCount;
         this.isExposed = isExposed;
         this.isDeleted = false;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -53,9 +87,7 @@ public class Product {
         validateCategory(category);
         validatePrice(price);
 
-        Long id = sequence.getAndIncrement();
-
-        return new Product(id, productName.trim(), category.trim(), description, imageUrl, price, 0, isExposed);
+        return new Product(null, productName.trim(), category.trim(), description, imageUrl, price, 0, isExposed);
     }
 
     private static void validateProductName(String productName) {
@@ -97,7 +129,6 @@ public class Product {
         this.price = price;
         this.salesCount = salesCount;
         this.isExposed = isExposed;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -106,7 +137,6 @@ public class Product {
     public void updateProductName(String productName) {
         validateProductName(productName);
         this.productName = productName.trim();
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -114,7 +144,6 @@ public class Product {
      */
     public void updateExposure(boolean isExposed) {
         this.isExposed = isExposed;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -122,7 +151,6 @@ public class Product {
      */
     public void updateImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -138,7 +166,6 @@ public class Product {
     public void delete() {
         this.isDeleted = true;
         this.isExposed = false;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -150,7 +177,6 @@ public class Product {
             throw ProductException.creationFailed("증가 수량은 0보다 커야 합니다.");
         }
         this.salesCount += quantity;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -165,6 +191,5 @@ public class Product {
             throw ProductException.creationFailed("판매량이 감소 수량보다 적습니다.");
         }
         this.salesCount -= quantity;
-        this.updatedAt = LocalDateTime.now();
     }
 }

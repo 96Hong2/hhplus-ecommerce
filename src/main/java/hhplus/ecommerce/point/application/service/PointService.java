@@ -9,6 +9,7 @@ import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,7 +32,10 @@ public class PointService {
      * @param amount
      * @param description
      * @return 충전 후 포인트 이력
+     *
+     * @Transactional: User 잔액 업데이트 + PointHistory 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public PointHistory chargePoint(Long userId, BigDecimal amount, String description) {
 
         // 최소 충전금액 검증
@@ -70,7 +74,10 @@ public class PointService {
      * @param orderId
      * @param description
      * @return 포인트 사용 내역
+     *
+     * @Transactional: User 잔액 차감 + PointHistory 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public PointHistory usePoint(Long userId, BigDecimal amount, Long orderId, String description) {
         ReentrantLock lock = userLockMap.computeIfAbsent(userId, k -> new ReentrantLock());
         lock.lock();

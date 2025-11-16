@@ -37,8 +37,13 @@ public class ProductService {
         try {
             Product product = Product.create(productName, category, description, imageUrl, price, isExposed);
             return productRepository.save(product);
+        } catch (ProductException e) {
+            // Product.create에서 발생한 ProductException은 그대로 전파
+            throw e;
         } catch (Exception e) {
-            throw ProductException.creationFailed(e.getMessage());
+            // 기타 예외 (Repository 저장 시 발생)
+            e.printStackTrace(); // 디버깅을 위한 스택트레이스 출력
+            throw ProductException.creationFailed("상품 등록 중 오류: " + e.getClass().getSimpleName() + " - " + e.getMessage());
         }
     }
 
@@ -51,13 +56,24 @@ public class ProductService {
      * @return 상품 목록 및 페이징 정보
      */
     public PageResponse<Product> getProducts(int page, int size, String sort, String category) {
-        return switch (sort) {
-            case "latest" -> productRepository.findAllByCategoryWithPage(page, size, category);
-            case "sales" -> productRepository.findAllBySalesWithPaging(page, size);
-            case "price_asc" -> productRepository.findAllByPriceWithPaging(page, size, true);
-            case "price_desc" -> productRepository.findAllByPriceWithPaging(page, size, false);
+        org.springframework.data.domain.Page<Product> productPage;
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+
+        productPage = switch (sort) {
+            case "latest" -> productRepository.findByCategoryOrderByCreatedAtDesc(category, pageable);
+            case "sales" -> productRepository.findAll(pageable); // TODO: 판매량순 구현 필요
+            case "price_asc" -> productRepository.findAllByPriceAsc(pageable);
+            case "price_desc" -> productRepository.findAllByPriceDesc(pageable);
             default -> throw ProductException.getListFailed("지원하지 않는 정렬 기준입니다: " + sort);
         };
+
+        return new PageResponse<>(
+                productPage.getContent(),
+                page,
+                size,
+                productPage.getTotalElements(),
+                productPage.getTotalPages()
+        );
     }
 
     /**
@@ -81,7 +97,7 @@ public class ProductService {
                 product.isExposed(),
                 product.getCreatedAt(),
                 product.getUpdatedAt(),
-                productOptionList
+                productOptionList.stream().map(po -> new ProductMapper().toProductOptionResponse(po)).toList()
         );
     }
 
@@ -143,7 +159,8 @@ public class ProductService {
             throw ProductException.getListFailed(message);
         }
 
-        return productRepository.findTopN(TopN, searchDays);
+        // TODO: PopularProduct 집계 테이블 기반으로 인기 상품 조회 쿼리 구현 필요
+        return List.of();
     }
 
     /**

@@ -1,24 +1,23 @@
 package hhplus.ecommerce.product.domain.repository;
 
+import hhplus.ecommerce.product.domain.model.StockAdjustmentType;
 import hhplus.ecommerce.product.domain.model.StockHistory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface StockHistoryRepository {
+public interface StockHistoryRepository extends JpaRepository<StockHistory, Long> {
 
-    /**
-     * 재고 이력을 저장한다.
-     * @param stockHistory
-     * @return 재고 이력
-     */
-    StockHistory save(StockHistory stockHistory);
+    @Query("SELECT sh FROM StockHistory sh WHERE sh.productOptionId = :productOptionId ORDER BY sh.createdAt DESC")
+    List<StockHistory> findByProductOptionIdOrderByCreatedAtDesc(@Param("productOptionId") Long productOptionId);
 
-    /**
-     * 특정 상품옵션의 재고 이력을 페이징과 함께 가져온다.
-     * @param productOptionId
-     * @param page
-     * @param size
-     * @return 재고 이력
-     */
-    List<StockHistory> findAllByProductOptionIdWithPaging(Long productOptionId, int page, int size);
+    @Query("SELECT sh FROM StockHistory sh WHERE sh.productOptionId = :productOptionId AND sh.adjustmentType = :adjustmentType ORDER BY sh.createdAt DESC")
+    List<StockHistory> findByProductOptionIdAndAdjustmentType(@Param("productOptionId") Long productOptionId,
+                                                               @Param("adjustmentType") StockAdjustmentType adjustmentType);
+
+    Page<StockHistory> findByProductOptionIdOrderByCreatedAtDesc(Long productOptionId, Pageable pageable);
 }

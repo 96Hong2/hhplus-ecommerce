@@ -96,6 +96,8 @@ class StockServiceTest {
 
         // then
         assertThat(result).isNotNull();
+        assertThat(result.getAdjustmentType()).isNotNull();
+        assertThat(result.getAdjustmentType().name()).isEqualTo("ADD");
         verify(productOptionRepository, times(1)).save(any(ProductOption.class));
         verify(stockHistoryRepository, times(1)).save(any(StockHistory.class));
     }
@@ -121,6 +123,8 @@ class StockServiceTest {
 
         // then
         assertThat(result).isNotNull();
+        assertThat(result.getAdjustmentType()).isNotNull();
+        assertThat(result.getAdjustmentType().name()).isEqualTo("USE");
         verify(productOptionRepository, times(1)).save(any(ProductOption.class));
         verify(stockHistoryRepository, times(1)).save(any(StockHistory.class));
     }

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// claude review : Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
+// Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,13 +41,12 @@ class PaymentControllerTest {
     void payOrder() throws Exception {
         PaymentRequest request = new PaymentRequest();
         request.setPaymentMethod("CARD");
-        request.setUsedPoints(1000L);
 
         PaymentResponse mockResponse = new PaymentResponse(
                 1L,
                 "ORD-001",
                 OrderStatus.PAID,
-                50000L,
+                java.math.BigDecimal.valueOf(50000),
                 "CARD",
                 LocalDateTime.now()
         );
@@ -68,13 +67,12 @@ class PaymentControllerTest {
     void payOrderWithoutPoints() throws Exception {
         PaymentRequest request = new PaymentRequest();
         request.setPaymentMethod("CARD");
-        request.setUsedPoints(0L);
 
         PaymentResponse mockResponse = new PaymentResponse(
                 1L,
                 "ORD-001",
                 OrderStatus.PAID,
-                50000L,
+                java.math.BigDecimal.valueOf(50000),
                 "CARD",
                 LocalDateTime.now()
         );

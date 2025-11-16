@@ -1,29 +1,65 @@
 package hhplus.ecommerce.coupon.domain.model;
 
 import hhplus.ecommerce.common.domain.exception.CouponException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "coupons", indexes = {
+    @Index(name = "idx_valid_period", columnList = "valid_from, valid_to"),
+    @Index(name = "idx_created_at", columnList = "created_at")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Coupon {
 
-    private static AtomicLong sequence = new AtomicLong(1);
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long couponId;
 
-    private final Long couponId;
-    private final String couponName;
-    private final DiscountType discountType;
-    private final BigDecimal discountValue;
-    private final BigDecimal minOrderAmount;
-    private final int maxIssueCount;
+    @Column(name = "coupon_name", nullable = false, length = 100)
+    private String couponName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", nullable = false, length = 20)
+    private DiscountType discountType;
+
+    @Column(name = "discount_value", nullable = false, precision = 15, scale = 2)
+    private BigDecimal discountValue;
+
+    @Column(name = "min_order_amount", nullable = false, precision = 15, scale = 2)
+    private BigDecimal minOrderAmount;
+
+    @Column(name = "max_issue_count", nullable = false)
+    private int maxIssueCount;
+
+    @Column(name = "issued_count", nullable = false)
     private int issuedCount;
-    private final LocalDateTime validFrom;
-    private final LocalDateTime validTo;
-    private final Long createdBy;
-    private final LocalDateTime createdAt;
+
+    @Column(name = "valid_from", nullable = false)
+    private LocalDateTime validFrom;
+
+    @Column(name = "valid_to", nullable = false)
+    private LocalDateTime validTo;
+
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     private Coupon(Long couponId, String couponName, DiscountType discountType, BigDecimal discountValue,
@@ -39,8 +75,6 @@ public class Coupon {
         this.validFrom = validFrom;
         this.validTo = validTo;
         this.createdBy = createdBy;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -66,8 +100,7 @@ public class Coupon {
         validateValidPeriod(validFrom, validTo);
         validateCreatedBy(createdBy);
 
-        Long id = sequence.getAndIncrement();
-        return new Coupon(id, couponName.trim(), discountType, discountValue,
+        return new Coupon(null, couponName.trim(), discountType, discountValue,
                 minOrderAmount, maxIssueCount, 0, validFrom, validTo, createdBy);
     }
 
@@ -80,7 +113,6 @@ public class Coupon {
             throw CouponException.couponIssueLimitExceeded(this.couponId);
         }
         this.issuedCount++;
-        this.updatedAt = LocalDateTime.now();
         return true;
     }
 

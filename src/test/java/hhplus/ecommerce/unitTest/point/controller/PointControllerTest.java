@@ -8,17 +8,17 @@ import hhplus.ecommerce.point.domain.model.TransactionType;
 import hhplus.ecommerce.point.presentation.controller.PointController;
 import hhplus.ecommerce.point.presentation.dto.request.PointChargeRequest;
 import hhplus.ecommerce.point.presentation.dto.response.PointHistoryResponse;
-// claude review : PointBalanceResponse import 추가
+// PointBalanceResponse import 추가
 import hhplus.ecommerce.point.presentation.dto.response.PointBalanceResponse;
 import hhplus.ecommerce.user.domain.model.User;
-// claude review : User 생성자 사용을 위해 UserRole import 추가
+// User 생성자 사용을 위해 UserRole import 추가
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// claude review : Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
+// Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,7 +56,7 @@ class PointControllerTest {
     @Test
     @DisplayName("포인트 충전 API 테스트")
     void chargePoint() throws Exception {
-        // claude review : amount는 BigDecimal 타입, User 생성자 파라미터 수정
+        // amount는 BigDecimal 타입, User 생성자 파라미터 수정
         Long userId = 1L;
         PointChargeRequest request = new PointChargeRequest();
         request.setAmount(BigDecimal.valueOf(10000));
@@ -74,7 +74,7 @@ class PointControllerTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
         when(pointService.chargePoint(anyLong(), any(BigDecimal.class), anyString()))
                 .thenReturn(mockHistory);
-        // claude review : PointHistoryResponse 생성자 매개변수 순서 수정
+        // PointHistoryResponse 생성자 매개변수 순서 수정
         when(pointMapper.toHistoryResponse(any()))
                 .thenReturn(new PointHistoryResponse(
                         1L,                          // pointHistoryId
@@ -97,7 +97,7 @@ class PointControllerTest {
     @Test
     @DisplayName("포인트 잔액 조회 API 테스트")
     void getPointBalance() throws Exception {
-        // claude review : User 생성자 파라미터 수정
+        // User 생성자 파라미터 수정
         Long userId = 1L;
         User mockUser = new User(userId, "테스트유저", BigDecimal.valueOf(50000), UserRole.CUSTOMER);
 

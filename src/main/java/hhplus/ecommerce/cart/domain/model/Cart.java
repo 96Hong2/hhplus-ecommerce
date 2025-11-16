@@ -1,21 +1,44 @@
 package hhplus.ecommerce.cart.domain.model;
 
 import hhplus.ecommerce.common.domain.exception.CartException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "carts", indexes = {
+    @Index(name = "idx_user_product_option", columnList = "user_id, product_option_id", unique = true),
+    @Index(name = "idx_user_id", columnList = "user_id")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Cart {
 
-    private static AtomicLong sequence = new AtomicLong(1);
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long cartId;
 
-    private final Long cartId;
-    private final Long userId;
-    private final Long productOptionId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "product_option_id", nullable = false)
+    private Long productOptionId;
+
+    @Column(name = "quantity", nullable = false)
     private int quantity;
-    private final LocalDateTime createdAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     private Cart(Long cartId, Long userId, Long productOptionId, int quantity) {
@@ -23,8 +46,6 @@ public class Cart {
         this.userId = userId;
         this.productOptionId = productOptionId;
         this.quantity = quantity;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -39,8 +60,7 @@ public class Cart {
         validateProductOptionId(productOptionId);
         validateQuantity(quantity);
 
-        Long id = sequence.getAndIncrement();
-        return new Cart(id, userId, productOptionId, quantity);
+        return new Cart(null, userId, productOptionId, quantity);
     }
 
     /**
@@ -50,7 +70,6 @@ public class Cart {
     public void updateQuantity(int quantity) {
         validateQuantity(quantity);
         this.quantity = quantity;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -62,7 +81,6 @@ public class Cart {
             throw CartException.invalidCartQuantity(additionalQuantity);
         }
         this.quantity += additionalQuantity;
-        this.updatedAt = LocalDateTime.now();
     }
 
     private static void validateUserId(Long userId) {

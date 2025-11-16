@@ -1,5 +1,6 @@
 package hhplus.ecommerce.product.presentation.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -14,7 +15,10 @@ public class ProductOptionResponse {
     private final String optionName;
     private final BigDecimal priceAdjustment;
     private final int stockQuantity;
-    private final boolean isExposed;
+    @JsonProperty("is_exposed")
+    private final boolean is_exposed;
+    @JsonProperty("is_sold_out")
+    private final boolean is_sold_out;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
 }

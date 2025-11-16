@@ -227,7 +227,7 @@ server.post('/api/order/:userId', (req, res) => {
       productOptionId: item.productOptionId,
       productName: product.productName,
       optionName: productOption.optionName,
-      productPrice: productOption.priceAdjustment,
+      unitPrice: productOption.priceAdjustment,
       quantity: item.quantity,
       subtotal: subtotal
     });
@@ -298,7 +298,7 @@ server.post('/api/order/:userId', (req, res) => {
       .find({ id: String(item.productOptionId) })
       .assign({
         stockQuantity: newStockQuantity,
-        soldOutFlag: newStockQuantity === 0,
+        isSoldOut: newStockQuantity === 0,
         updatedAt: new Date().toISOString()
       })
       .write();

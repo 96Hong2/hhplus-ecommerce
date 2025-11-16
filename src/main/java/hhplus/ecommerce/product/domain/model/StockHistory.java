@@ -2,31 +2,62 @@ package hhplus.ecommerce.product.domain.model;
 
 import hhplus.ecommerce.common.domain.constants.BusinessConstants;
 import hhplus.ecommerce.common.domain.exception.StockException;
+import jakarta.persistence.*;
+import hhplus.ecommerce.product.domain.model.StockAdjustmentType;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "stock_histories", indexes = {
+    @Index(name = "idx_product_option_created", columnList = "product_option_id, created_at"),
+    @Index(name = "idx_product_option_type_created", columnList = "product_option_id, adjustment_type, created_at"),
+    @Index(name = "idx_product_option_updatedby_created", columnList = "product_option_id, updated_by, created_at"),
+    @Index(name = "idx_created_at", columnList = "created_at")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StockHistory {
-    private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final Long stockHistoryId;
-    private final Long productOptionId;
-    private final int amount;
-    private final int balance;
-    private final String description;
-    private final Long updatedBy;
-    private final LocalDateTime createdAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long stockHistoryId;
 
-    private StockHistory(Long stockHistoryId, Long productOptionId, int amount, int balance, String description, Long updatedBy) {
+    @Column(name = "product_option_id", nullable = false)
+    private Long productOptionId;
+
+    @Column(name = "amount", nullable = false)
+    private int amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "adjustment_type", nullable = false, length = 20)
+    private StockAdjustmentType adjustmentType;
+
+    @Column(name = "balance", nullable = false)
+    private int balance;
+
+    @Column(name = "description", length = 200)
+    private String description;
+
+    @Column(name = "updated_by", nullable = false)
+    private Long updatedBy;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    private StockHistory(Long stockHistoryId, Long productOptionId, int amount, StockAdjustmentType adjustmentType, int balance, String description, Long updatedBy) {
         this.stockHistoryId = stockHistoryId;
         this.productOptionId = productOptionId;
         this.amount = amount;
+        this.adjustmentType = adjustmentType;
         this.balance = balance;
         this.description = description;
         this.updatedBy = updatedBy;
-        this.createdAt = LocalDateTime.now();
     }
 
     /**
@@ -39,12 +70,12 @@ public class StockHistory {
      * @return 생성된 재고 이력
      */
 
-    public static StockHistory create(Long productOptionId, int amount, int balance, String description, Long updatedBy) {
+    public static StockHistory create(Long productOptionId, int amount, StockAdjustmentType adjustmentType, int balance, String description, Long updatedBy) {
         validateProductOptionId(productOptionId);
         validateBalance(balance);
         validateDescription(description);
 
-        return new StockHistory(sequence.getAndIncrement(), productOptionId, amount, balance, description, updatedBy);
+        return new StockHistory(null, productOptionId, amount, adjustmentType, balance, description, updatedBy);
     }
 
     private static void validateProductOptionId(Long productOptionId) {
@@ -78,7 +109,7 @@ public class StockHistory {
         if (amount <= 0) {
             throw StockException.invalidStockAmount(amount);
         }
-        return create(productOptionId, amount, balance, description, updatedBy);
+        return create(productOptionId, amount, StockAdjustmentType.ADD, balance, description, updatedBy);
     }
 
     /**
@@ -94,7 +125,7 @@ public class StockHistory {
         if (amount <= 0) {
             throw StockException.invalidStockAmount(amount);
         }
-        return create(productOptionId, -amount, balance, description, updatedBy);
+        return create(productOptionId, -amount, StockAdjustmentType.USE, balance, description, updatedBy);
     }
 
     /**

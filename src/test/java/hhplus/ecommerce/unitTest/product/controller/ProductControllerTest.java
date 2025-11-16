@@ -14,7 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// claude review : Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -80,7 +79,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("상품 상세 조회 API 테스트")
     void getProductDetail() throws Exception {
-        // claude review : ProductDetailResponse 생성자 파라미터 순서 수정
+        // ProductDetailResponse 생성자 파라미터 순서 수정
         ProductDetailResponse mockResponse = new ProductDetailResponse(
                 1L,                          // productId
                 "테스트 상품",                // productName

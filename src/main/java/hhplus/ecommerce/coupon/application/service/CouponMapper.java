@@ -54,7 +54,7 @@ public class CouponMapper {
                 coupon.getDiscountType(),
                 coupon.getDiscountValue(),
                 coupon.getMinOrderAmount(),
-                userCoupon.isUsed(),
+                userCoupon.getStatus(),
                 userCoupon.getUsedAt(),
                 userCoupon.getIssuedAt(),
                 coupon.getValidFrom(),

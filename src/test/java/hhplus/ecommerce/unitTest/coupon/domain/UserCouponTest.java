@@ -2,6 +2,7 @@ package hhplus.ecommerce.unitTest.coupon.domain;
 
 import hhplus.ecommerce.common.domain.exception.CouponException;
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,13 +18,11 @@ public class UserCouponTest {
         UserCoupon userCoupon = UserCoupon.create(1L, 1L);
 
         // then
-        assertThat(userCoupon.getUserCouponId()).isNotNull();
         assertThat(userCoupon.getUserId()).isEqualTo(1L);
         assertThat(userCoupon.getCouponId()).isEqualTo(1L);
-        assertThat(userCoupon.isUsed()).isFalse();
+        assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.ACTIVE);
         assertThat(userCoupon.getUsedAt()).isNull();
         assertThat(userCoupon.getOrderId()).isNull();
-        assertThat(userCoupon.getIssuedAt()).isNotNull();
     }
 
     @Test
@@ -54,7 +53,7 @@ public class UserCouponTest {
         userCoupon.use(1L);
 
         // then
-        assertThat(userCoupon.isUsed()).isTrue();
+        assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.USED);
         assertThat(userCoupon.getUsedAt()).isNotNull();
         assertThat(userCoupon.getOrderId()).isEqualTo(1L);
     }
