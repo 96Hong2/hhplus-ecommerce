@@ -1,6 +1,6 @@
 plugins {
 	java
-	id("org.springframework.boot") version "3.5.7"
+	id("org.springframework.boot") version "3.3.5"
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -46,4 +46,17 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+
+    // 테스트 실행 시 자동으로 test 프로필 활성화
+    systemProperty("spring.profiles.active", "test")
+
+    // 추가 JVM 옵션
+    jvmArgs("-Xmx2048m", "-XX:MaxMetaspaceSize=512m")
+
+    // 테스트 로그 상세 출력
+    testLogging {
+        events("passed", "skipped", "failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStandardStreams = false
+    }
 }

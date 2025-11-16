@@ -1,0 +1,13 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+# Java/Spring Boot 프로젝트 전역 인코딩 고정
+[*.{java,kt,gradle,properties,yml,yaml,md}]
+charset = utf-8
+end_of_line = lf

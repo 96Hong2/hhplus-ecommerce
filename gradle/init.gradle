@@ -1,0 +1,28 @@
+// Gradle init script to work around Windows file locking issues
+// This script is automatically loaded by Gradle before build execution
+
+// Disable file system watching
+gradle.startParameter.setWatchFileSystemMode(org.gradle.api.internal.file.FileSystemWatchingMode.DISABLED)
+
+// Configure all projects
+allprojects {
+    buildDir = new File(rootProject.projectDir, "build")
+
+    // Disable build cache for all projects
+    buildCache {
+        local {
+            enabled = false
+        }
+    }
+}
+
+// Configure dependency resolution to be more lenient with file operations
+gradle.projectsEvaluated {
+    allprojects {
+        tasks.withType(JavaCompile) {
+            options.fork = false
+        }
+    }
+}
+
+println "Windows file locking workarounds applied via init.gradle"
