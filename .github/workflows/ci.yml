@@ -21,6 +21,12 @@ jobs:
           java-version: '17'
           cache: gradle
 
+      # Docker 메모리 증가
+      - name: Configure Docker
+        run: |
+            echo '{"max-concurrent-downloads": 3}' | sudo tee /etc/docker/daemon.json
+            sudo systemctl restart docker
+
       - name: Grant execute permission for Gradlew
         run: chmod +x gradlew
 

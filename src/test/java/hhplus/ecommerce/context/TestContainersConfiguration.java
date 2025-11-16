@@ -4,7 +4,10 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
+
+import java.time.Duration;
 
 @TestConfiguration(proxyBeanMethods = false)
 public class TestContainersConfiguration {
@@ -15,7 +18,9 @@ public class TestContainersConfiguration {
             .withDatabaseName("ecommerce_test")
             .withUsername("test")
             .withPassword("test")
-            .withReuse(true); // 컨테이너 재사용으로 테스트 속도 향상
+            // .withReuse(true) // 컨테이너 재사용으로 테스트 속도 향상 (CI환경에서는 제거)
+            .waitingFor(Wait.forHealthcheck()
+                .withStartupTimeout(Duration.ofMinutes(5))); // 5분 타임아웃 헬스체크
 
     @Bean
     @ServiceConnection
