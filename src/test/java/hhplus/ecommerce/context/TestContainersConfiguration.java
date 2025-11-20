@@ -19,8 +19,8 @@ public class TestContainersConfiguration {
             .withUsername("test")
             .withPassword("test")
             // .withReuse(true) // 컨테이너 재사용으로 테스트 속도 향상 (CI환경에서는 제거)
-            .waitingFor(Wait.forHealthcheck()
-                .withStartupTimeout(Duration.ofMinutes(5))); // 5분 타임아웃 헬스체크
+            .waitingFor(Wait.forLogMessage(".*ready for connections.*", 2)) // MySQL 8은 2번 출력
+            .withStartupTimeout(Duration.ofSeconds(90));
 
     @Bean
     @ServiceConnection

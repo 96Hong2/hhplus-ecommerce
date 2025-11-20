@@ -17,7 +17,7 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
           cache: gradle
 
@@ -30,9 +30,14 @@ jobs:
       - name: Grant execute permission for Gradlew
         run: chmod +x gradlew
 
+      # build/tmp 디렉토리 생성
+      - name: Create build directories
+        run: mkdir -p build/tmp
+
       - name: Build & Test (with Testcontainers)
         env:
           SPRING_PROFILES_ACTIVE: test
+          GRADLE_OPTS: "-Djava.io.tmpdir=/tmp"
         run: ./gradlew clean test --no-daemon
 
       - name: Upload Test Reports

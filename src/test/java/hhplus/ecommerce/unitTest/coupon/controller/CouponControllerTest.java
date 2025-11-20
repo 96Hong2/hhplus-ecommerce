@@ -1,7 +1,6 @@
 package hhplus.ecommerce.unitTest.coupon.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import hhplus.ecommerce.coupon.application.service.CouponMapper;
 import hhplus.ecommerce.coupon.application.service.CouponService;
 import hhplus.ecommerce.coupon.application.service.UserCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
@@ -14,7 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -36,14 +35,11 @@ class CouponControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private CouponService couponService;
 
-    @MockitoBean
+    @MockBean
     private UserCouponService userCouponService;
-
-    @MockitoBean
-    private CouponMapper couponMapper;
 
     @Test
     @DisplayName("쿠폰 생성 API 테스트")

@@ -7,19 +7,14 @@ import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
 import hhplus.ecommerce.point.presentation.controller.PointController;
 import hhplus.ecommerce.point.presentation.dto.request.PointChargeRequest;
-import hhplus.ecommerce.point.presentation.dto.response.PointHistoryResponse;
-// PointBalanceResponse import 추가
-import hhplus.ecommerce.point.presentation.dto.response.PointBalanceResponse;
 import hhplus.ecommerce.user.domain.model.User;
-// User 생성자 사용을 위해 UserRole import 추가
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -44,13 +39,13 @@ class PointControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private PointService pointService;
 
-    @MockitoBean
+    @MockBean
     private PointMapper pointMapper;
 
-    @MockitoBean
+    @MockBean
     private UserRepository userRepository;
 
     @Test

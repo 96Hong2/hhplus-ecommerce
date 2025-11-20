@@ -2,10 +2,8 @@ package hhplus.ecommerce.unitTest.product.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
-import hhplus.ecommerce.product.application.service.ProductMapper;
 import hhplus.ecommerce.product.application.service.ProductService;
 import hhplus.ecommerce.product.domain.model.Product;
-import hhplus.ecommerce.product.domain.model.ProductOption;
 import hhplus.ecommerce.product.presentation.controller.ProductController;
 import hhplus.ecommerce.product.presentation.dto.request.ProductRegistrationRequest;
 import hhplus.ecommerce.product.presentation.dto.response.ProductDetailResponse;
@@ -14,7 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -35,11 +33,8 @@ class ProductControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private ProductService productService;
-
-    @MockitoBean
-    private ProductMapper productMapper;
 
     private Product testProduct;
 

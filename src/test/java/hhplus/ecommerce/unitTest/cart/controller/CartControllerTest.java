@@ -1,7 +1,6 @@
 package hhplus.ecommerce.unitTest.cart.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import hhplus.ecommerce.cart.application.service.CartMapper;
 import hhplus.ecommerce.cart.application.service.CartService;
 import hhplus.ecommerce.cart.domain.model.Cart;
 import hhplus.ecommerce.cart.presentation.controller.CartController;
@@ -11,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -31,11 +30,8 @@ class CartControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private CartService cartService;
-
-    @MockitoBean
-    private CartMapper cartMapper;
 
     @Test
     @DisplayName("장바구니 추가 API 테스트")

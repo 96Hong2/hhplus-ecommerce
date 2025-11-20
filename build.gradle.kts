@@ -60,3 +60,8 @@ tasks.withType<Test> {
         showStandardStreams = false
     }
 }
+
+// Properties 파일 UTF-8 인코딩 처리
+tasks.withType<ProcessResources> {
+    filteringCharset = "UTF-8"
+}
