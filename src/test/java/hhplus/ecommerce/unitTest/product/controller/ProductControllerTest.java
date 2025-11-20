@@ -2,6 +2,7 @@ package hhplus.ecommerce.unitTest.product.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
+import hhplus.ecommerce.product.application.service.ProductMapper;
 import hhplus.ecommerce.product.application.service.ProductService;
 import hhplus.ecommerce.product.domain.model.Product;
 import hhplus.ecommerce.product.presentation.controller.ProductController;
@@ -35,6 +36,9 @@ class ProductControllerTest {
 
     @MockBean
     private ProductService productService;
+
+    @MockBean
+    private ProductMapper productMapper;
 
     private Product testProduct;
 

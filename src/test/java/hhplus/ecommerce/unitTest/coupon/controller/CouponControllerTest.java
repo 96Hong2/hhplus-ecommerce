@@ -1,6 +1,7 @@
 package hhplus.ecommerce.unitTest.coupon.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hhplus.ecommerce.coupon.application.service.CouponMapper;
 import hhplus.ecommerce.coupon.application.service.CouponService;
 import hhplus.ecommerce.coupon.application.service.UserCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
@@ -40,6 +41,9 @@ class CouponControllerTest {
 
     @MockBean
     private UserCouponService userCouponService;
+
+    @MockBean
+    private CouponMapper couponMapper;
 
     @Test
     @DisplayName("쿠폰 생성 API 테스트")

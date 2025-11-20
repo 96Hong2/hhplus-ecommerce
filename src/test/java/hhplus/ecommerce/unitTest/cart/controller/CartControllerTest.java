@@ -1,6 +1,7 @@
 package hhplus.ecommerce.unitTest.cart.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hhplus.ecommerce.cart.application.service.CartMapper;
 import hhplus.ecommerce.cart.application.service.CartService;
 import hhplus.ecommerce.cart.domain.model.Cart;
 import hhplus.ecommerce.cart.presentation.controller.CartController;
@@ -32,6 +33,9 @@ class CartControllerTest {
 
     @MockBean
     private CartService cartService;
+
+    @MockBean
+    private CartMapper cartMapper;
 
     @Test
     @DisplayName("장바구니 추가 API 테스트")
