@@ -19,6 +19,11 @@ public class OrderException extends BusinessException {
         return new OrderException(ErrorCode.ORDER_NOT_FOUND, message);
     }
 
+    public static OrderException orderNotFoundByNumber(String orderNumber) {
+        String message = String.format("주문을 찾을 수 없습니다. [주문번호: %s]", orderNumber);
+        return new OrderException(ErrorCode.ORDER_NOT_FOUND, message);
+    }
+
     public static OrderException orderItemNotFound(Long orderItemId) {
         String message = String.format("주문 상품을 찾을 수 없습니다. [주문상품ID: %d]", orderItemId);
         return new OrderException(ErrorCode.ORDER_ITEM_NOT_FOUND, message);

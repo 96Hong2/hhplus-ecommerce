@@ -47,6 +47,14 @@ public class User {
     @Column(name = "is_deleted", nullable = false, columnDefinition = "TINYINT(1)")
     private boolean isDeleted;
 
+    /**
+     * 낙관적 락(Optimistic Lock)을 위한 버전 필드
+     * JPA가 자동으로 관리하며, 엔티티가 수정될 때마다 자동으로 증가
+     */
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     // 일반 생성자 (도메인 로직용)
     public User(Long userId, String username, BigDecimal pointBalance, UserRole role) {
         this.userId = userId;

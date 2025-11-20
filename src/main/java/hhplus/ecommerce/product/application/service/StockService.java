@@ -177,4 +177,13 @@ public class StockService {
                 .filter(StockReservation::isExpired)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 주문 ID로 재고 예약 목록 조회
+     * @param orderId 주문 ID
+     * @return 해당 주문의 재고 예약 목록
+     */
+    public List<StockReservation> getReservationsByOrderId(Long orderId) {
+        return stockReservationRepository.findByOrderId(orderId);
+    }
 }
