@@ -118,10 +118,10 @@ class CartServiceTest {
         Cart cart = Cart.create(1L, 1L, 2);
 
         when(cartRepository.findById(anyLong())).thenReturn(Optional.of(cart));
-        doNothing().when(cartRepository).delete(anyLong());
+        doNothing().when(cartRepository).deleteById(anyLong());
 
         cartService.removeFromCart(1L);
 
-        verify(cartRepository, times(1)).delete(1L);
+        verify(cartRepository, times(1)).deleteById(1L);
     }
 }

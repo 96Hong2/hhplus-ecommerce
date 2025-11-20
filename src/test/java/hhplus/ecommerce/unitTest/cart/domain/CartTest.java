@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static hhplus.ecommerce.unitTest.support.DomainTestFixtures.*;
 
 public class CartTest {
 
@@ -15,6 +16,8 @@ public class CartTest {
     void createCart() {
         // when
         Cart cart = Cart.create(1L, 1L, 2);
+        setId(cart, "cartId", 1L);
+        initTimestamps(cart);
 
         // then
         assertThat(cart.getCartId()).isNotNull();

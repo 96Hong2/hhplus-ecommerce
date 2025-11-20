@@ -11,8 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// claude review : Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,10 +31,10 @@ class CartControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private CartService cartService;
 
-    @MockitoBean
+    @MockBean
     private CartMapper cartMapper;
 
     @Test
@@ -53,7 +52,7 @@ class CartControllerTest {
         mockMvc.perform(post("/api/cart/{userId}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         verify(cartService, times(1)).addToCart(anyLong(), anyLong(), anyInt());
     }
@@ -81,7 +80,7 @@ class CartControllerTest {
         when(cartService.updateCartQuantity(anyLong(), anyInt()))
                 .thenReturn(mockCart);
 
-        mockMvc.perform(put("/api/cart/{cartId}", 1L)
+        mockMvc.perform(patch("/api/cart/{cartId}", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -92,11 +91,11 @@ class CartControllerTest {
     @Test
     @DisplayName("장바구니 항목 삭제 API 테스트")
     void removeFromCart() throws Exception {
-        doNothing().when(cartService).removeFromCart(anyLong());
+        doNothing().when(cartService).removeByUserIdAndProductId(anyLong(), anyLong());
 
-        mockMvc.perform(delete("/api/cart/{cartId}", 1L))
-                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/cart/{userId}/{productId}", 1L, 1L))
+                .andExpect(status().isNoContent());
 
-        verify(cartService, times(1)).removeFromCart(1L);
+        verify(cartService, times(1)).removeByUserIdAndProductId(1L, 1L);
     }
 }

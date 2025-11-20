@@ -4,6 +4,7 @@ CLAUDE.md
 HELP.md
 
 .gradle
+.gradle-cache/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/

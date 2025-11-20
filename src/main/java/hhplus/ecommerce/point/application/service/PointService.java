@@ -9,6 +9,7 @@ import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,7 +32,10 @@ public class PointService {
      * @param amount
      * @param description
      * @return 충전 후 포인트 이력
+     *
+     * @Transactional: User 잔액 업데이트 + PointHistory 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public PointHistory chargePoint(Long userId, BigDecimal amount, String description) {
 
         // 최소 충전금액 검증
@@ -44,7 +48,7 @@ public class PointService {
 
         try {
             // 사용자 조회
-            User user = userRepository.findById(userId)
+            User user = userRepository.findByIdWithLock(userId)
                     .orElseThrow(() -> PointException.chargeFailed(userId, "사용자를 찾을 수 없습니다."));
 
             // 포인트 충전
@@ -70,7 +74,10 @@ public class PointService {
      * @param orderId
      * @param description
      * @return 포인트 사용 내역
+     *
+     * @Transactional: User 잔액 차감 + PointHistory 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public PointHistory usePoint(Long userId, BigDecimal amount, Long orderId, String description) {
         ReentrantLock lock = userLockMap.computeIfAbsent(userId, k -> new ReentrantLock());
         lock.lock();
@@ -82,7 +89,7 @@ public class PointService {
 
         try {
             // 사용자 조회
-            User user = userRepository.findById(userId)
+            User user = userRepository.findByIdWithLock(userId)
                     .orElseThrow(() -> PointException.useFailed(userId, "사용자를 찾을 수 없습니다."));
 
             // 사용 가능 여부 검증
@@ -114,8 +121,8 @@ public class PointService {
      */
     public List<PointHistory> getPointHistory(Long userId, TransactionType transactionType) {
         if (transactionType != null) {
-            return pointHistoryRepository.findByUserIdAndTransactionType(userId, transactionType);
+            return pointHistoryRepository.findByUserIdAndType(userId, transactionType);
         }
-        return pointHistoryRepository.findByUserId(userId);
+        return pointHistoryRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 }

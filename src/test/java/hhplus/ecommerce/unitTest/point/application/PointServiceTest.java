@@ -53,7 +53,7 @@ class PointServiceTest {
         BigDecimal chargeAmount = BigDecimal.valueOf(5000);
         BigDecimal expectedBalance = testUser.getPointBalance().add(chargeAmount);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -64,7 +64,7 @@ class PointServiceTest {
         // then
         assertThat(result).isNotNull();
         assertThat(result.getAmount()).isEqualByComparingTo(chargeAmount);
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findByIdWithLock(1L);
         verify(userRepository, times(1)).save(any(User.class));
         verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
     }
@@ -79,20 +79,20 @@ class PointServiceTest {
         assertThatThrownBy(() -> pointService.chargePoint(1L, lowAmount, "포인트 충전"))
                 .isInstanceOf(PointException.class);
 
-        verify(userRepository, never()).findById(any());
+        verify(userRepository, never()).findByIdWithLock(any());
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자의 포인트 충전 시 예외가 발생한다")
     void chargePointUserNotFound() {
         // given
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+        when(userRepository.findByIdWithLock(999L)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> pointService.chargePoint(999L, BigDecimal.valueOf(5000), "충전"))
                 .isInstanceOf(PointException.class);
 
-        verify(userRepository, times(1)).findById(999L);
+        verify(userRepository, times(1)).findByIdWithLock(999L);
         verify(pointHistoryRepository, never()).save(any());
     }
 
@@ -102,7 +102,7 @@ class PointServiceTest {
         // given
         BigDecimal useAmount = BigDecimal.valueOf(3000);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(pointHistoryRepository.save(any(PointHistory.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -114,7 +114,7 @@ class PointServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getAmount()).isEqualByComparingTo(useAmount);
         assertThat(result.getOrderId()).isEqualTo(1L);
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findByIdWithLock(1L);
         verify(userRepository, times(1)).save(any(User.class));
         verify(pointHistoryRepository, times(1)).save(any(PointHistory.class));
     }
@@ -125,13 +125,13 @@ class PointServiceTest {
         // given
         BigDecimal excessiveAmount = testUser.getPointBalance().add(BigDecimal.valueOf(1000));
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(userRepository.findByIdWithLock(1L)).thenReturn(Optional.of(testUser));
 
         // when & then
         assertThatThrownBy(() -> pointService.usePoint(1L, excessiveAmount, 1L, "주문 결제"))
                 .isInstanceOf(PointException.class);
 
-        verify(userRepository, times(1)).findById(1L);
+        verify(userRepository, times(1)).findByIdWithLock(1L);
         verify(pointHistoryRepository, never()).save(any());
     }
 
@@ -157,14 +157,14 @@ class PointServiceTest {
                 new PointHistory(2L, 1L, BigDecimal.valueOf(3000), BigDecimal.valueOf(12000), 1L, "사용")
         );
 
-        when(pointHistoryRepository.findByUserId(1L)).thenReturn(expectedHistory);
+        when(pointHistoryRepository.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(expectedHistory);
 
         // when
         List<PointHistory> result = pointService.getPointHistory(1L, null);
 
         // then
         assertThat(result).hasSize(2);
-        verify(pointHistoryRepository, times(1)).findByUserId(1L);
+        verify(pointHistoryRepository, times(1)).findByUserIdOrderByCreatedAtDesc(1L);
     }
 
     @Test
@@ -175,7 +175,7 @@ class PointServiceTest {
                 new PointHistory(1L, 1L, BigDecimal.valueOf(5000), BigDecimal.valueOf(15000), "충전")
         );
 
-        when(pointHistoryRepository.findByUserIdAndTransactionType(1L, TransactionType.CHARGE))
+        when(pointHistoryRepository.findByUserIdAndType(1L, TransactionType.CHARGE))
                 .thenReturn(chargeHistory);
 
         // when
@@ -184,6 +184,6 @@ class PointServiceTest {
         // then
         assertThat(result).hasSize(1);
         verify(pointHistoryRepository, times(1))
-                .findByUserIdAndTransactionType(1L, TransactionType.CHARGE);
+                .findByUserIdAndType(1L, TransactionType.CHARGE);
     }
 }

@@ -3,13 +3,13 @@ package hhplus.ecommerce.coupon.application.service;
 import hhplus.ecommerce.common.domain.exception.CouponException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
 import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
-import org.springframework.stereotype.Service;
+import hhplus.ecommerce.coupon.domain.model.UserCouponStatus;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -20,7 +20,10 @@ public class UserCouponService {
 
     /**
      * 일반 쿠폰 발급
+     *
+     * @Transactional: 중복 체크 + 발급 수 체크 + UserCoupon 저장이 원자적으로 처리되어야 함 (읽기 후 쓰기)
      */
+    @Transactional
     public UserCoupon issueCoupon(Long userId, Long couponId) {
         Coupon coupon = couponService.getCouponById(couponId);
 
@@ -45,24 +48,19 @@ public class UserCouponService {
 
     /**
      * 선착순 쿠폰 발급 (동시성 제어)
+     *
+     * @Transactional: 중복 체크 + 발급 수 증가 + UserCoupon 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public UserCoupon issueFirstComeCoupon(Long userId, Long couponId) {
-        Coupon coupon = couponService.getCouponById(couponId);
-
         // 중복 발급 체크
         if (userCouponRepository.findByUserIdAndCouponId(userId, couponId).isPresent()) {
             throw CouponException.couponAlreadyIssued(userId, couponId);
         }
 
-        // AtomicInteger CAS 방식으로 발급 수 증가 (동시성 제어)
-        boolean issued = userCouponRepository.incrementIssueCountIfAvailable(
-                couponId,
-                coupon.getMaxIssueCount()
-        );
-
-        if (!issued) {
-            throw CouponException.couponIssueLimitExceeded(couponId);
-        }
+        // Pessimistic Lock으로 Coupon 조회 및 발급 수 증가 (동시성 제어)
+        Coupon coupon = couponService.getCouponByIdWithLock(couponId);
+        coupon.issue();
 
         UserCoupon userCoupon = UserCoupon.create(
                 userId,
@@ -75,21 +73,24 @@ public class UserCouponService {
     /**
      * 사용자 쿠폰 목록 조회
      */
-    public List<UserCoupon> getUserCoupons(Long userId, Boolean isUsed) {
-        if (isUsed == null) {
+    public List<UserCoupon> getUserCoupons(Long userId, UserCouponStatus status) {
+        if (status == null) {
             return userCouponRepository.findByUserId(userId);
         }
-        return userCouponRepository.findByUserIdAndIsUsed(userId, isUsed);
+        return userCouponRepository.findByUserIdAndStatus(userId, status);
     }
 
     /**
      * 쿠폰 사용 처리
+     *
+     * @Transactional: UserCoupon 조회 + 상태 변경 + 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public UserCoupon useCoupon(Long userCouponId, Long orderId) {
         UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                 .orElseThrow(() -> CouponException.couponNotFound(userCouponId));
 
-        if (userCoupon.isUsed()) {
+        if (userCoupon.getStatus() == UserCouponStatus.USED) {
             throw CouponException.couponAlreadyUsed(userCouponId);
         }
 

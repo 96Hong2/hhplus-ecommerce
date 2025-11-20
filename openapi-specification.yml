@@ -1386,11 +1386,12 @@ paths:
           schema:
             type: integer
             format: int64
-        - name: isUsed
+        - name: status
           in: query
-          description: 사용 여부 필터
+          description: 상태 필터 (ACTIVE, USED, EXPIRED)
           schema:
-            type: boolean
+            type: string
+            enum: [ACTIVE, USED, EXPIRED]
       responses:
         '200':
           description: 성공
@@ -1668,7 +1669,7 @@ components:
         imageUrl:
           type: string
           maxLength: 500
-        exposeFlag:
+        is_exposed:
           type: boolean
           default: true
 
@@ -1686,7 +1687,7 @@ components:
         imageUrl:
           type: string
           maxLength: 500
-        exposeFlag:
+        is_exposed:
           type: boolean
 
     # 일반 상품 조회 응답
@@ -1704,9 +1705,9 @@ components:
           type: string
         imageUrl:
           type: string
-        exposeFlag:
+        is_exposed:
           type: boolean
-        isSoldOut:
+        is_sold_out:
           type: boolean
           description: 모든 옵션이 품절 상태인 경우 true
         createdAt:
@@ -1731,9 +1732,9 @@ components:
           type: string
         imageUrl:
           type: string
-        exposeFlag:
+        is_exposed:
           type: boolean
-        isSoldOut:
+        is_sold_out:
           type: boolean
           description: 모든 옵션이 품절 상태인 경우 true
         options:
@@ -1769,10 +1770,10 @@ components:
         stockQuantity:
           type: integer
           minimum: 0
-        soldOutFlag:
+        is_sold_out:
           type: boolean
           default: false
-        exposeFlag:
+        is_exposed:
           type: boolean
           default: true
 
@@ -1787,9 +1788,9 @@ components:
           format: decimal
         stockQuantity:
           type: integer
-        soldOutFlag:
+        is_sold_out:
           type: boolean
-        exposeFlag:
+        is_exposed:
           type: boolean
 
     ProductOptionResponse:
@@ -1808,9 +1809,9 @@ components:
           format: decimal
         stockQuantity:
           type: integer
-        soldOutFlag:
+        is_sold_out:
           type: boolean
-        exposeFlag:
+        is_exposed:
           type: boolean
         createdAt:
           type: string
@@ -1917,7 +1918,7 @@ components:
         availableStock:
           type: integer
           description: 실제 판매 가능 재고 (physicalStock - reservedStock)
-        soldOutFlag:
+        is_sold_out:
           type: boolean
         histories:
           type: array
@@ -2117,10 +2118,6 @@ components:
               quantity:
                 type: integer
                 minimum: 1
-        usedPoints:
-          type: number
-          format: decimal
-          default: 0
         couponId:
           type: integer
           format: int64
@@ -2147,10 +2144,7 @@ components:
         finalAmount:
           type: number
           format: decimal
-          description: 실제 결제 금액 (totalAmount - discountAmount - usedPoints)
-        usedPoints:
-          type: number
-          format: decimal
+          description: 실제 결제 금액 (totalAmount - discountAmount)
         couponId:
           type: integer
           format: int64
@@ -2190,9 +2184,6 @@ components:
           type: number
           format: decimal
         finalAmount:
-          type: number
-          format: decimal
-        usedPoints:
           type: number
           format: decimal
         couponId:
@@ -2243,7 +2234,7 @@ components:
           type: string
         optionName:
           type: string
-        productPrice:
+        unitPrice:
           type: number
           format: decimal
         quantity:
@@ -2296,10 +2287,7 @@ components:
         paymentMethod:
           type: string
           description: 결제 수단
-        usedPoints:
-          type: number
-          format: decimal
-          default: 0
+          enum: [CREDIT, CHECK, CASH, KAKAO]
 
     PaymentResponse:
       type: object
@@ -2431,8 +2419,9 @@ components:
         discountValue:
           type: number
           format: decimal
-        isUsed:
-          type: boolean
+        status:
+          type: string
+          enum: [ACTIVE, USED, EXPIRED]
         usedAt:
           type: string
           format: date-time

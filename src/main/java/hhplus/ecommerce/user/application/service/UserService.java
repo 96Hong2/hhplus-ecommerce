@@ -8,8 +8,9 @@ import hhplus.ecommerce.user.domain.repository.UserRepository;
 import hhplus.ecommerce.user.presentation.dto.request.UserRegistrationRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -25,20 +26,23 @@ public class UserService {
      * @return 페이징된 유저 목록
      */
     public PageResponse<User> getUserListWithPage(String role, int page, int size) {
-        List<User> userList;
-        int totalElements;
+        Page<User> userPage;
+        Pageable pageable = PageRequest.of(page, size);
 
         if (role != null && !role.isBlank()) {
             UserRole userRole = UserRole.valueOf(role.toUpperCase());
-            userList = userRepository.findAllByRoleWithPage(userRole, page, size);
-            totalElements = userRepository.countByRole(userRole);
+            userPage = userRepository.findAllByRole(userRole, pageable);
         } else {
-            userList = userRepository.findAllWithPage(page, size);
-            totalElements = userRepository.countAll();
+            userPage = userRepository.findAll(pageable);
         }
 
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        return new PageResponse<>(userList, page, size, totalElements, totalPages);
+        return new PageResponse<>(
+                userPage.getContent(),
+                page,
+                size,
+                userPage.getTotalElements(),
+                userPage.getTotalPages()
+        );
     }
 
     /**

@@ -1,20 +1,28 @@
 package hhplus.ecommerce.integrationTest;
 
+import hhplus.ecommerce.context.TestContainersConfiguration;
 import hhplus.ecommerce.coupon.application.service.CouponService;
 import hhplus.ecommerce.coupon.application.service.UserCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
+import hhplus.ecommerce.coupon.domain.repository.CouponRepository;
+import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
 import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,7 +30,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * JPA 기반 쿠폰 동시성 테스트
+ * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
+ */
 @SpringBootTest
+@Import(TestContainersConfiguration.class)
+@TestPropertySource(locations = "classpath:application-test.properties")
 class CouponConcurrencyTest {
 
     @Autowired
@@ -34,10 +48,23 @@ class CouponConcurrencyTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CouponRepository couponRepository;
+
+    @Autowired
+    private UserCouponRepository userCouponRepository;
+
+    private Long adminId;
     private Long couponId;
+    private List<Long> userIds;
 
     @BeforeEach
     void setUp() {
+        // 테스트용 관리자 생성
+        User admin = userRepository.save(User.create("쿠폰관리자", UserRole.ADMIN));
+        adminId = admin.getUserId();
+
+        // 선착순 쿠폰 생성 (100개 한정)
         Coupon coupon = couponService.createCoupon(
                 "선착순 쿠폰",
                 DiscountType.FIXED,
@@ -46,27 +73,48 @@ class CouponConcurrencyTest {
                 100,
                 LocalDateTime.now(),
                 LocalDateTime.now().plusDays(30),
-                1L
+                admin.getUserId()
         );
         couponId = coupon.getCouponId();
+
+        // 테스트용 유저 150명 생성
+        userIds = new ArrayList<>();
+        for (int i = 0; i < 150; i++) {
+            User user = userRepository.save(User.create("쿠폰유저" + i, UserRole.CUSTOMER));
+            userIds.add(user.getUserId());
+        }
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 테스트 후 생성된 데이터 정리 (외래키 순서 고려)
+        userCouponRepository.deleteAll(); // 사용자 쿠폰 먼저 삭제
+        if (couponId != null) {
+            couponRepository.deleteById(couponId); // 쿠폰 삭제
+        }
+        if (userIds != null && !userIds.isEmpty()) {
+            userRepository.deleteAllById(userIds); // 사용자 삭제
+        }
+        if (adminId != null) {
+            userRepository.deleteById(adminId); // 관리자 삭제
+        }
     }
 
     @Test
     @DisplayName("동시성 테스트: 선착순 쿠폰 발급 - 100명만 성공")
-    void issueFirstComeCoupon() throws InterruptedException {
+    void issueFirstComeCoupon_OnlyHundredSuccess() throws InterruptedException {
         int threadCount = 150;
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        ExecutorService executorService = Executors.newFixedThreadPool(50);
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failCount = new AtomicInteger(0);
 
+        // 150명이 동시에 쿠폰 발급 시도
         for (int i = 0; i < threadCount; i++) {
-            final long userId = i + 1;
-            User user = userRepository.save(User.create("testuser", UserRole.CUSTOMER));
-
+            final Long userId = userIds.get(i);
             executorService.execute(() -> {
                 try {
-                    userCouponService.issueFirstComeCoupon(user.getUserId(), couponId);
+                    userCouponService.issueFirstComeCoupon(userId, couponId);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();
@@ -79,14 +127,48 @@ class CouponConcurrencyTest {
         latch.await();
         executorService.shutdown();
 
+        // Then: 정확히 100명만 성공, 50명은 실패
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(50);
         assertThat(userCouponService.getCurrentIssueCount(couponId)).isEqualTo(100);
     }
 
     @Test
+    @DisplayName("동시성 테스트: 동일 사용자가 여러 번 시도해도 1개만 발급")
+    void issueFirstComeCoupon_SameUserOnlyOnce() throws InterruptedException {
+        Long singleUserId = userIds.get(0);
+
+        int threadCount = 10;
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        // 동일 사용자가 10번 동시 시도
+        for (int i = 0; i < threadCount; i++) {
+            executorService.execute(() -> {
+                try {
+                    userCouponService.issueFirstComeCoupon(singleUserId, couponId);
+                    successCount.incrementAndGet();
+                } catch (Exception e) {
+                    // 중복 발급 시도는 예외 발생
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        // Then: 1번만 성공
+        assertThat(successCount.get()).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("동시성 테스트: 선착순 쿠폰 발급 - 정확히 한도만큼만 발급")
-    void issueFirstComeCouponExactLimit() throws InterruptedException {
+    void issueFirstComeCoupon_ExactLimit() throws InterruptedException {
+        // Given: 50개 한정 쿠폰 생성
+        User admin = userRepository.save(User.create("admin2", UserRole.ADMIN));
         Coupon limitedCoupon = couponService.createCoupon(
                 "제한된 선착순 쿠폰",
                 DiscountType.PERCENTAGE,
@@ -95,23 +177,23 @@ class CouponConcurrencyTest {
                 50,
                 LocalDateTime.now(),
                 LocalDateTime.now().plusDays(30),
-                1L
+                admin.getUserId()
         );
 
         int threadCount = 100;
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+        ExecutorService executorService = Executors.newFixedThreadPool(50);
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger successCount = new AtomicInteger(0);
 
+        // When: 100명이 동시에 쿠폰 발급 시도
         for (int i = 0; i < threadCount; i++) {
-            final long userId = i + 1000;
-            User user = userRepository.save(User.create("testuser", UserRole.CUSTOMER));
-
+            final Long userId = userIds.get(i);
             executorService.execute(() -> {
                 try {
-                    userCouponService.issueFirstComeCoupon(user.getUserId(), limitedCoupon.getCouponId());
+                    userCouponService.issueFirstComeCoupon(userId, limitedCoupon.getCouponId());
                     successCount.incrementAndGet();
                 } catch (Exception e) {
+                    // 발급 실패
                 } finally {
                     latch.countDown();
                 }
@@ -121,35 +203,8 @@ class CouponConcurrencyTest {
         latch.await();
         executorService.shutdown();
 
+        // Then: 정확히 50명만 성공
         assertThat(successCount.get()).isEqualTo(50);
         assertThat(userCouponService.getCurrentIssueCount(limitedCoupon.getCouponId())).isEqualTo(50);
-    }
-
-    @Test
-    @DisplayName("동시성 테스트: 동일 사용자가 여러 번 시도해도 1개만 발급")
-    void issueFirstComeCouponDuplicateUser() throws InterruptedException {
-        User user = userRepository.save(User.create("testuser", UserRole.CUSTOMER));
-
-        int threadCount = 10;
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
-        CountDownLatch latch = new CountDownLatch(threadCount);
-        AtomicInteger successCount = new AtomicInteger(0);
-
-        for (int i = 0; i < threadCount; i++) {
-            executorService.execute(() -> {
-                try {
-                    userCouponService.issueFirstComeCoupon(user.getUserId(), couponId);
-                    successCount.incrementAndGet();
-                } catch (Exception e) {
-                } finally {
-                    latch.countDown();
-                }
-            });
-        }
-
-        latch.await();
-        executorService.shutdown();
-
-        assertThat(successCount.get()).isEqualTo(1);
     }
 }

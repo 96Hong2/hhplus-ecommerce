@@ -2,26 +2,59 @@ package hhplus.ecommerce.product.domain.model;
 
 import hhplus.ecommerce.common.domain.constants.BusinessConstants;
 import hhplus.ecommerce.common.domain.exception.StockException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.atomic.AtomicLong;
 
+@Entity
+@Table(name = "stock_reservations", indexes = {
+    @Index(name = "idx_order_id", columnList = "order_id"),
+    @Index(name = "idx_product_option_status", columnList = "product_option_id, reservation_status"),
+    @Index(name = "idx_expires_at", columnList = "expires_at")
+})
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StockReservation {
-    private static final AtomicLong sequence = new AtomicLong(1);
 
-    private final Long stockReservationId;
-    private final Long productOptionId;
-    private final Long orderId;
-    private final int reservedQuantity;
-    private final ReservationStatus reservationStatus;
-    private final LocalDateTime reservedAt;
-    private final LocalDateTime expiresAt;
-    private final LocalDateTime updatedAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long stockReservationId;
+
+    @Column(name = "product_option_id", nullable = false)
+    private Long productOptionId;
+
+    @Column(name = "order_id", nullable = false)
+    private Long orderId;
+
+    @Column(name = "reserved_quantity", nullable = false)
+    private int reservedQuantity;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reservation_status", nullable = false, length = 20)
+    private ReservationStatus reservationStatus;
+
+    @Column(name = "reserved_at", nullable = false, updatable = false)
+    private LocalDateTime reservedAt;
+
+    @Column(name = "expires_at", nullable = false)
+    private LocalDateTime expiresAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     private StockReservation(Long stockReservationId, Long productOptionId, Long orderId, int reservedQuantity,
-                            ReservationStatus reservationStatus, LocalDateTime reservedAt, LocalDateTime expiresAt, LocalDateTime updatedAt) {
+                            ReservationStatus reservationStatus, LocalDateTime reservedAt, LocalDateTime expiresAt) {
         this.stockReservationId = stockReservationId;
         this.productOptionId = productOptionId;
         this.orderId = orderId;
@@ -29,7 +62,6 @@ public class StockReservation {
         this.reservationStatus = reservationStatus;
         this.reservedAt = reservedAt;
         this.expiresAt = expiresAt;
-        this.updatedAt = updatedAt;
     }
 
     /**
@@ -58,8 +90,8 @@ public class StockReservation {
         validateExpiresAt(expiresAt);
 
         LocalDateTime now = LocalDateTime.now();
-        return new StockReservation(sequence.incrementAndGet(), productOptionId, orderId, reservedQuantity,
-                                   ReservationStatus.RESERVED, now, expiresAt, now);
+        return new StockReservation(null, productOptionId, orderId, reservedQuantity,
+                                   ReservationStatus.RESERVED, now, expiresAt);
     }
 
     private static void validateProductOptionId(Long productOptionId) {
@@ -96,7 +128,7 @@ public class StockReservation {
             throw new IllegalArgumentException("예약 상태는 필수입니다.");
         }
         return new StockReservation(this.stockReservationId, this.productOptionId, this.orderId,
-                                   this.reservedQuantity, newStatus, this.reservedAt, this.expiresAt, LocalDateTime.now());
+                                   this.reservedQuantity, newStatus, this.reservedAt, this.expiresAt);
     }
 
     /**

@@ -3,7 +3,6 @@ package hhplus.ecommerce.unitTest.user.service;
 import hhplus.ecommerce.common.domain.exception.UserException;
 import hhplus.ecommerce.user.application.service.UserService;
 import hhplus.ecommerce.user.domain.model.User;
-// claude review : User 생성자와 UserRegistrationRequest 사용을 위해 UserRole import 추가
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
 import hhplus.ecommerce.user.presentation.dto.request.UserRegistrationRequest;
@@ -35,7 +34,6 @@ class UserServiceTest {
     @Test
     @DisplayName("유저를 정상적으로 등록할 수 있다")
     void registerUser() {
-        // claude review : setRole은 UserRole 타입
         UserRegistrationRequest request = new UserRegistrationRequest();
         request.setUsername("테스트유저");
         request.setRole(UserRole.CUSTOMER);
@@ -53,7 +51,6 @@ class UserServiceTest {
     @Test
     @DisplayName("중복된 사용자명으로 등록 시 예외가 발생한다")
     void registerUserWithDuplicateName() {
-        // claude review : setRole은 UserRole 타입
         UserRegistrationRequest request = new UserRegistrationRequest();
         request.setUsername("중복유저");
         request.setRole(UserRole.CUSTOMER);
@@ -69,7 +66,6 @@ class UserServiceTest {
     @Test
     @DisplayName("ID로 유저를 조회할 수 있다")
     void getUserById() {
-        // claude review : User 생성자 파라미터 수정
         User mockUser = new User(1L, "테스트유저", BigDecimal.ZERO, UserRole.CUSTOMER);
         when(userRepository.findById(anyLong())).thenReturn(Optional.of(mockUser));
 

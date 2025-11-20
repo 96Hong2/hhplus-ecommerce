@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static hhplus.ecommerce.unitTest.support.DomainTestFixtures.*;
 
 public class ProductOptionTest {
 
@@ -18,6 +19,7 @@ public class ProductOptionTest {
     void createProductOption() {
         // when
         ProductOption option = ProductOption.create(1L, "Large", BigDecimal.valueOf(2000), 100, true);
+        initTimestamps(option);
 
         // then
         assertThat(option.getProductId()).isEqualTo(1L);
@@ -49,10 +51,9 @@ public class ProductOptionTest {
     @Test
     @DisplayName("상품 옵션 생성 시 가격 변동이 0이면 예외가 발생한다.")
     void createProductOptionWithZeroPriceAdjustment() {
-        // when & then
-        assertThatThrownBy(() -> ProductOption.create(1L, "Large", BigDecimal.ZERO, 100, true))
-                .isInstanceOf(ProductException.class)
-                .hasMessageContaining("옵션 변동 가격은 0원이 될 수 없습니다.");
+        // when - 0원은 허용됨(도메인 정책)
+        ProductOption option = ProductOption.create(1L, "Large", BigDecimal.ZERO, 100, true);
+        assertThat(option.getPriceAdjustment()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test

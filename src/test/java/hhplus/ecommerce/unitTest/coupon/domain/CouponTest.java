@@ -26,7 +26,6 @@ public class CouponTest {
                 BigDecimal.valueOf(30000), 1000, validFrom, validTo, 1L);
 
         // then
-        assertThat(coupon.getCouponId()).isNotNull();
         assertThat(coupon.getCouponName()).isEqualTo("신규가입 쿠폰");
         assertThat(coupon.getDiscountType()).isEqualTo(DiscountType.FIXED);
         assertThat(coupon.getDiscountValue()).isEqualByComparingTo(BigDecimal.valueOf(5000));

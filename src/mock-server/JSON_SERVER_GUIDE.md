@@ -108,7 +108,7 @@ Content-Type: application/json
   "category": "전자제품",
   "description": "고성능 노트북",
   "imageUrl": "https://example.com/laptop.jpg",
-  "exposeFlag": true,
+  "isExposed": true,
   "createdAt": "2025-01-20T00:00:00Z",
   "updatedAt": "2025-01-20T00:00:00Z"
 }

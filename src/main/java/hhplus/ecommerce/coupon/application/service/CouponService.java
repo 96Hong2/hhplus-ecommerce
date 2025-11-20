@@ -67,6 +67,15 @@ public class CouponService {
     }
 
     /**
+     * 쿠폰 ID로 조회 (Pessimistic Lock)
+     * 동시성 제어가 필요한 경우 사용
+     */
+    public Coupon getCouponByIdWithLock(Long couponId) {
+        return couponRepository.findByIdWithLock(couponId)
+                .orElseThrow(() -> CouponException.couponCreateFail("쿠폰을 찾을 수 없습니다."));
+    }
+
+    /**
      * 쿠폰 사용 가능 여부 확인
      */
     public boolean isCouponAvailable(Coupon coupon, BigDecimal orderAmount, LocalDateTime currentTime) {

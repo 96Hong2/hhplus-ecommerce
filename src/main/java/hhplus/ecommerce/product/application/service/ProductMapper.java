@@ -8,7 +8,6 @@ import hhplus.ecommerce.product.presentation.dto.response.ProductListResponse;
 import hhplus.ecommerce.product.presentation.dto.response.ProductOptionResponse;
 import hhplus.ecommerce.product.presentation.dto.response.TopProductResponse;
 import org.springframework.stereotype.Component;
-;
 import java.util.List;
 
 @Component
@@ -35,12 +34,16 @@ public class ProductMapper {
                 productOption.getPriceAdjustment(),
                 productOption.getStockQuantity(),
                 productOption.isExposed(),
+                productOption.isSoldOut(),
                 productOption.getCreatedAt(),
                 productOption.getUpdatedAt()
         );
     }
 
     public ProductDetailResponse toProductDetailResponse(Product product, List<ProductOption> productOptionList) {
+        List<ProductOptionResponse> optionResponses = productOptionList.stream()
+                .map(this::toProductOptionResponse)
+                .toList();
         return new ProductDetailResponse(
                 product.getProductId(),
                 product.getProductName(),
@@ -51,7 +54,7 @@ public class ProductMapper {
                 product.isExposed(),
                 product.getCreatedAt(),
                 product.getUpdatedAt(),
-                productOptionList
+                optionResponses
         );
     }
 
@@ -60,7 +63,7 @@ public class ProductMapper {
                 popularProduct.getPopularProductId(),
                 popularProduct.getProductId(),
                 popularProduct.getSalesCount(),
-                popularProduct.getCalculationDate(),
+                popularProduct.getCalculationDate().atStartOfDay(),
                 popularProduct.getRank(),
                 popularProduct.getCreatedAt()
         );

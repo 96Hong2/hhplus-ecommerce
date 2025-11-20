@@ -7,19 +7,14 @@ import hhplus.ecommerce.point.domain.model.PointHistory;
 import hhplus.ecommerce.point.domain.model.TransactionType;
 import hhplus.ecommerce.point.presentation.controller.PointController;
 import hhplus.ecommerce.point.presentation.dto.request.PointChargeRequest;
-import hhplus.ecommerce.point.presentation.dto.response.PointHistoryResponse;
-// claude review : PointBalanceResponse import 추가
-import hhplus.ecommerce.point.presentation.dto.response.PointBalanceResponse;
 import hhplus.ecommerce.user.domain.model.User;
-// claude review : User 생성자 사용을 위해 UserRole import 추가
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-// claude review : Spring Boot 3.4+에서 @MockBean이 deprecated되어 @MockitoBean으로 변경
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -44,19 +39,19 @@ class PointControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private PointService pointService;
 
-    @MockitoBean
+    @MockBean
     private PointMapper pointMapper;
 
-    @MockitoBean
+    @MockBean
     private UserRepository userRepository;
 
     @Test
     @DisplayName("포인트 충전 API 테스트")
     void chargePoint() throws Exception {
-        // claude review : amount는 BigDecimal 타입, User 생성자 파라미터 수정
+        // amount는 BigDecimal 타입, User 생성자 파라미터 수정
         Long userId = 1L;
         PointChargeRequest request = new PointChargeRequest();
         request.setAmount(BigDecimal.valueOf(10000));
@@ -74,40 +69,34 @@ class PointControllerTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
         when(pointService.chargePoint(anyLong(), any(BigDecimal.class), anyString()))
                 .thenReturn(mockHistory);
-        // claude review : PointHistoryResponse 생성자 매개변수 순서 수정
-        when(pointMapper.toHistoryResponse(any()))
-                .thenReturn(new PointHistoryResponse(
-                        1L,                          // pointHistoryId
-                        userId,                      // userId
-                        BigDecimal.valueOf(10000),   // amount
-                        BigDecimal.valueOf(10000),   // balanceAfter
-                        TransactionType.CHARGE,      // transactionType
-                        "테스트 충전",                // description
-                        null,                        // orderId
-                        LocalDateTime.now()          // createdAt
+        // charge/use는 TransactionResponse를 사용
+        when(pointMapper.toTransactionResponse(any()))
+                .thenReturn(new hhplus.ecommerce.point.presentation.dto.response.PointTransactionResponse(
+                        1L,
+                        userId,
+                        TransactionType.CHARGE,
+                        BigDecimal.valueOf(10000),
+                        BigDecimal.valueOf(10000),
+                        "테스트 충전",
+                        LocalDateTime.now()
                 ));
 
-        mockMvc.perform(post("/api/point/{userId}/charge", userId)
+        mockMvc.perform(post("/api/point/charge/{userId}", userId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.amount").value(10000));
     }
 
     @Test
-    @DisplayName("포인트 잔액 조회 API 테스트")
-    void getPointBalance() throws Exception {
-        // claude review : User 생성자 파라미터 수정
+    @DisplayName("포인트 히스토리 조회 API 테스트(간단)")
+    void getPointHistorySimple() throws Exception {
         Long userId = 1L;
-        User mockUser = new User(userId, "테스트유저", BigDecimal.valueOf(50000), UserRole.CUSTOMER);
+        when(pointService.getPointHistory(anyLong(), any()))
+                .thenReturn(List.of());
 
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
-        when(pointMapper.toPointBalanceResponse(any()))
-                .thenReturn(new PointBalanceResponse(userId, BigDecimal.valueOf(50000)));
-
-        mockMvc.perform(get("/api/point/{userId}/balance", userId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.balance").value(50000));
+        mockMvc.perform(get("/api/point/{userId}", userId))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -118,7 +107,7 @@ class PointControllerTest {
         when(pointService.getPointHistory(anyLong(), any()))
                 .thenReturn(List.of());
 
-        mockMvc.perform(get("/api/point/{userId}/history", userId))
+        mockMvc.perform(get("/api/point/{userId}", userId))
                 .andExpect(status().isOk());
     }
 }

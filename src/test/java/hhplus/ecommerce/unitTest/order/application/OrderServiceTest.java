@@ -1,8 +1,11 @@
 package hhplus.ecommerce.unitTest.order.application;
 
 import hhplus.ecommerce.common.presentation.response.PageResponse;
-import hhplus.ecommerce.order.application.service.OrderService;
+import hhplus.ecommerce.order.application.dto.OrderDetailInfo;
+import hhplus.ecommerce.order.application.dto.OrderItemDetailInfo;
 import hhplus.ecommerce.order.application.usecase.*;
+import hhplus.ecommerce.order.domain.model.Order;
+import hhplus.ecommerce.order.domain.model.OrderItem;
 import hhplus.ecommerce.order.domain.model.OrderItemStatus;
 import hhplus.ecommerce.order.domain.model.OrderStatus;
 import hhplus.ecommerce.order.presentation.dto.request.OrderCreateRequest;
@@ -19,12 +22,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import hhplus.ecommerce.order.application.service.OrderService;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -32,22 +37,22 @@ import static org.mockito.Mockito.*;
 class OrderServiceTest {
 
     @Mock
-    private CreateOrderUseCase createOrderUseCase;
-
-    @Mock
-    private GetOrderListUseCase getOrderListUseCase;
-
-    @Mock
-    private GetOrderDetailUseCase getOrderDetailUseCase;
-
-    @Mock
-    private ChangeOrderStatusUseCase changeOrderStatusUseCase;
-
-    @Mock
-    private ChangeOrderItemStatusUseCase changeOrderItemStatusUseCase;
+    private OrderService orderService;
 
     @InjectMocks
-    private OrderService orderService;
+    private CreateOrderUseCase createOrderUseCase;
+
+    @InjectMocks
+    private GetOrderListUseCase getOrderListUseCase;
+
+    @InjectMocks
+    private GetOrderDetailUseCase getOrderDetailUseCase;
+
+    @InjectMocks
+    private ChangeOrderStatusUseCase changeOrderStatusUseCase;
+
+    @InjectMocks
+    private ChangeOrderItemStatusUseCase changeOrderItemStatusUseCase;
 
     @Test
     @DisplayName("주문을 생성할 수 있다")
@@ -56,33 +61,56 @@ class OrderServiceTest {
         Long userId = 1L;
         OrderCreateRequest request = new OrderCreateRequest();
         OrderItemRequest itemRequest = new OrderItemRequest();
-        itemRequest.setProductOptionId(1L);
+        itemRequest.setProductOptionId(100L);
         itemRequest.setQuantity(2);
         request.setItems(List.of(itemRequest));
-        request.setUsedPoints(1000L);
 
-        OrderCreateResponse expectedResponse = new OrderCreateResponse(
-                1L,
-                "ORD20251107001",
-                OrderStatus.PENDING,
-                20000L,
-                2000L,
-                17000L,
-                1000L,
-                LocalDateTime.now().plusMinutes(15)
+        var itemInfo = new hhplus.ecommerce.order.application.dto.OrderItemInfo(
+                10L, 100L, "상품", "옵션", 2,
+                java.math.BigDecimal.valueOf(10000),
+                java.math.BigDecimal.valueOf(20000)
         );
 
-        when(createOrderUseCase.execute(eq(userId), any(OrderCreateRequest.class)))
-                .thenReturn(expectedResponse);
+        when(orderService.collectOrderItems(any())).thenReturn(List.of(itemInfo));
+        when(orderService.calculateTotalAmount(any())).thenReturn(java.math.BigDecimal.valueOf(20000));
+        when(orderService.calculateCouponDiscount(isNull(), eq(java.math.BigDecimal.valueOf(20000))))
+                .thenReturn(java.math.BigDecimal.valueOf(2000));
+        when(orderService.generateOrderNumber(eq(userId))).thenReturn("ORD202501010000001");
+
+        // saveOrder는 전달된 Order를 ID만 채워 반환
+        when(orderService.saveOrder(any())).thenAnswer(invocation -> {
+            Order o = invocation.getArgument(0);
+            return new Order(
+                    1L,
+                    o.getOrderNumber(),
+                    o.getUserId(),
+                    o.getTotalAmount(),
+                    o.getDiscountAmount(),
+                    o.getFinalAmount(),
+                    o.getCouponId(),
+                    o.getPaymentMethod(),
+                    o.getOrderStatus(),
+                    o.getCreatedAt(),
+                    o.getUpdatedAt(),
+                    o.getExpiresAt()
+            );
+        });
+
+        doNothing().when(orderService).reserveStocks(anyLong(), any());
+        when(orderService.saveOrderItems(anyLong(), any())).thenReturn(List.of());
 
         // when
-        OrderCreateResponse result = orderService.createOrder(userId, request);
+        OrderCreateResponse result = createOrderUseCase.execute(userId, request);
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.getOrderId()).isEqualTo(1L);
         assertThat(result.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
-        verify(createOrderUseCase, times(1)).execute(eq(userId), any(OrderCreateRequest.class));
+        assertThat(result.getTotalAmount()).isEqualByComparingTo("20000");
+        assertThat(result.getDiscountAmount()).isEqualByComparingTo("2000");
+        assertThat(result.getFinalAmount()).isEqualByComparingTo("18000");
+        verify(orderService, times(1)).reserveStocks(eq(1L), any());
+        verify(orderService, times(1)).saveOrderItems(eq(1L), any());
     }
 
     @Test
@@ -92,57 +120,68 @@ class OrderServiceTest {
         Long userId = 1L;
         OrderStatus status = OrderStatus.PENDING;
         int page = 0;
-        int size = 10;
+        int size = 2;
 
-        List<OrderListResponse> content = List.of(
-                new OrderListResponse(1L, "ORD001", OrderStatus.PENDING, 20000L,
-                        LocalDateTime.now(), LocalDateTime.now().plusMinutes(15))
+        var now = LocalDateTime.now();
+        var o1 = new Order(
+                1L, "ORD1", userId,
+                java.math.BigDecimal.valueOf(10000), java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(10000),
+                null, null, OrderStatus.PENDING, now.minusMinutes(10), now.minusMinutes(10), now.plusMinutes(5)
         );
-        PageResponse<OrderListResponse> expectedResponse = new PageResponse<>(content, page, size, 1, 1);
+        var o2 = new Order(
+                2L, "ORD2", userId,
+                java.math.BigDecimal.valueOf(20000), java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(20000),
+                null, null, OrderStatus.PENDING, now.minusMinutes(9), now.minusMinutes(9), now.plusMinutes(5)
+        );
+        var o3 = new Order(
+                3L, "ORD3", userId,
+                java.math.BigDecimal.valueOf(30000), java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(30000),
+                null, null, OrderStatus.PENDING, now.minusMinutes(8), now.minusMinutes(8), now.plusMinutes(5)
+        );
 
-        when(getOrderListUseCase.execute(userId, status, page, size))
-                .thenReturn(expectedResponse);
+        when(orderService.getOrdersByUserId(eq(userId), eq(status)))
+                .thenReturn(List.of(o1, o2, o3));
 
         // when
-        PageResponse<OrderListResponse> result = orderService.getOrderList(userId, status, page, size);
+        PageResponse<OrderListResponse> result = getOrderListUseCase.execute(userId, status, page, size);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getContent()).hasSize(1);
-        verify(getOrderListUseCase, times(1)).execute(userId, status, page, size);
+        assertThat(result.getTotalElements()).isEqualTo(3);
+        assertThat(result.getTotalPages()).isEqualTo(2);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).getOrderId()).isEqualTo(1L);
     }
 
     @Test
     @DisplayName("주문 상세를 조회할 수 있다")
     void getOrderDetail() {
         // given
-        Long orderId = 1L;
-        List<OrderItemResponse> items = List.of(
-                new OrderItemResponse(1L, "테스트 상품", "옵션1", 2, 10000L, OrderItemStatus.PREPARING)
-        );
-        OrderDetailResponse expectedResponse = new OrderDetailResponse(
-                1L,
-                "ORD001",
-                OrderStatus.PENDING,
-                20000L,
-                2000L,
-                18000L,
-                0L,
-                items,
-                LocalDateTime.now(),
-                LocalDateTime.now().plusMinutes(15)
+        Long orderId = 10L;
+        var now = LocalDateTime.now();
+        var order = new Order(
+                orderId, "ORDX", 99L,
+                java.math.BigDecimal.valueOf(10000), java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(10000),
+                null, null, OrderStatus.PENDING, now.minusMinutes(1), now.minusMinutes(1), now.plusMinutes(10)
         );
 
-        when(getOrderDetailUseCase.execute(orderId)).thenReturn(expectedResponse);
+        when(orderService.getOrder(eq(orderId))).thenReturn(order);
+        when(orderService.getOrderItems(eq(orderId))).thenReturn(List.of());
+
+        var detailInfo = new hhplus.ecommerce.order.application.dto.OrderDetailInfo(
+                order.getOrderId(), order.getOrderNumber(), order.getOrderStatus(),
+                order.getTotalAmount(), order.getDiscountAmount(), order.getFinalAmount(),
+                List.of(), order.getCreatedAt(), order.getExpiresAt()
+        );
+        when(orderService.toOrderDetailInfo(eq(order), eq(List.of()))).thenReturn(detailInfo);
 
         // when
-        OrderDetailResponse result = orderService.getOrderDetail(orderId);
+        OrderDetailResponse result = getOrderDetailUseCase.execute(orderId);
 
         // then
         assertThat(result).isNotNull();
-        assertThat(result.getOrderId()).isEqualTo(1L);
-        assertThat(result.getItems()).hasSize(1);
-        verify(getOrderDetailUseCase, times(1)).execute(orderId);
+        assertThat(result.getOrderId()).isEqualTo(orderId);
+        assertThat(result.getOrderStatus()).isEqualTo(OrderStatus.PENDING);
     }
 
     @Test
@@ -150,64 +189,62 @@ class OrderServiceTest {
     void changeOrderStatus() {
         // given
         Long userId = 1L;
-        OrderStatusChangeRequest request = new OrderStatusChangeRequest(1L, OrderStatus.PAID);
+        Long orderId = 50L;
+        OrderStatusChangeRequest request = new OrderStatusChangeRequest(orderId, OrderStatus.PAID);
 
-        List<OrderItemResponse> items = List.of(
-                new OrderItemResponse(1L, "테스트 상품", "옵션1", 2, 10000L, OrderItemStatus.PREPARING)
-        );
-        OrderDetailResponse expectedResponse = new OrderDetailResponse(
-                1L,
-                "ORD001",
-                OrderStatus.PAID,
-                20000L,
-                2000L,
-                18000L,
-                0L,
-                items,
-                LocalDateTime.now(),
-                LocalDateTime.now().plusMinutes(15)
+        var now = LocalDateTime.now();
+        var pending = new Order(
+                orderId, "ORD-50", userId,
+                java.math.BigDecimal.valueOf(10000), java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(10000),
+                null, null, OrderStatus.PENDING, now.minusMinutes(3), now.minusMinutes(3), now.plusMinutes(10)
         );
 
-        when(changeOrderStatusUseCase.execute(eq(userId), any(OrderStatusChangeRequest.class)))
-                .thenReturn(expectedResponse);
+        when(orderService.getOrder(eq(orderId))).thenReturn(pending);
+        when(orderService.getOrderItems(eq(orderId))).thenReturn(List.of());
+        when(orderService.saveOrder(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var updatedInfo = new OrderDetailInfo(
+                pending.getOrderId(), pending.getOrderNumber(), OrderStatus.PAID,
+                pending.getTotalAmount(), pending.getDiscountAmount(), pending.getFinalAmount(),
+                List.of(), pending.getCreatedAt(), pending.getExpiresAt()
+        );
+        when(orderService.toOrderDetailInfo(any(), eq(List.of()))).thenReturn(updatedInfo);
 
         // when
-        OrderDetailResponse result = orderService.changeOrderStatus(userId, request);
+        OrderDetailResponse result = changeOrderStatusUseCase.execute(userId, request);
 
         // then
         assertThat(result).isNotNull();
+        assertThat(result.getOrderId()).isEqualTo(orderId);
         assertThat(result.getOrderStatus()).isEqualTo(OrderStatus.PAID);
-        verify(changeOrderStatusUseCase, times(1))
-                .execute(eq(userId), any(OrderStatusChangeRequest.class));
     }
 
     @Test
     @DisplayName("주문 아이템 상태를 변경할 수 있다")
     void changeOrderItemStatus() {
         // given
-        Long orderItemId = 1L;
-        OrderItemStatusChangeRequest request = new OrderItemStatusChangeRequest();
+        Long orderItemId = 900L;
+        var request = new OrderItemStatusChangeRequest();
         request.setStatus(OrderItemStatus.SHIPPING);
 
-        OrderItemResponse expectedResponse = new OrderItemResponse(
-                1L,
-                "테스트 상품",
-                "옵션1",
-                2,
-                10000L,
-                OrderItemStatus.SHIPPING
+        var item = OrderItem.create(
+                77L, 10L, 100L, "상품", "옵션", java.math.BigDecimal.valueOf(5000), 2
         );
+        // OrderItem.create는 id가 null이므로 상태 변경 후 저장 시 그대로 사용
+        when(orderService.getOrderItem(eq(orderItemId))).thenReturn(item);
+        when(orderService.saveOrderItem(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(changeOrderItemStatusUseCase.execute(eq(orderItemId), any(OrderItemStatusChangeRequest.class)))
-                .thenReturn(expectedResponse);
+        var itemInfo = new OrderItemDetailInfo(
+                orderItemId, "상품", "옵션", 2, java.math.BigDecimal.valueOf(5000), OrderItemStatus.SHIPPING
+        );
+        when(orderService.toOrderItemDetailInfo(any())).thenReturn(itemInfo);
 
         // when
-        OrderItemResponse result = orderService.changeOrderItemStatus(orderItemId, request);
+        OrderItemResponse result = changeOrderItemStatusUseCase.execute(orderItemId, request);
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.getItemStatus()).isEqualTo(OrderItemStatus.SHIPPING);
-        verify(changeOrderItemStatusUseCase, times(1))
-                .execute(eq(orderItemId), any(OrderItemStatusChangeRequest.class));
+        assertThat(result.getProductName()).isEqualTo("상품");
     }
 }

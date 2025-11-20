@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
+
+      # Docker 메모리 증가
+      - name: Configure Docker
+        run: |
+            echo '{"max-concurrent-downloads": 3}' | sudo tee /etc/docker/daemon.json
+            sudo systemctl restart docker
+
+      - name: Grant execute permission for Gradlew
+        run: chmod +x gradlew
+
+      # build/tmp 디렉토리 생성
+      - name: Create build directories
+        run: mkdir -p build/tmp
+
+      - name: Build & Test (with Testcontainers)
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          GRADLE_OPTS: "-Djava.io.tmpdir=/tmp"
+        run: ./gradlew clean test --no-daemon
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/test-results/test
+            build/reports/tests/test
+

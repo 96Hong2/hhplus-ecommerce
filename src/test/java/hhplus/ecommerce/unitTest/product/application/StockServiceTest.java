@@ -60,10 +60,8 @@ class StockServiceTest {
     void getStock() {
         // given
         Long productOptionId = 1L;
-        when(productOptionRepository.findById(productOptionId))
+        when(productOptionRepository.findByIdWithLock(productOptionId))
                 .thenReturn(Optional.of(testProductOption));
-        when(stockReservationRepository.findAllReservedByProductOptionId(productOptionId))
-                .thenReturn(List.of());
 
         // when
         var result = stockService.getStock(productOptionId);
@@ -72,7 +70,7 @@ class StockServiceTest {
         assertThat(result).isNotNull();
         assertThat(result.getPhysicalQuantity()).isEqualTo(100);
         assertThat(result.getAvailableQuantity()).isEqualTo(100);
-        verify(productOptionRepository, times(1)).findById(productOptionId);
+        verify(productOptionRepository, times(1)).findByIdWithLock(productOptionId);
     }
 
     @Test
@@ -82,10 +80,8 @@ class StockServiceTest {
         Long productOptionId = 1L;
         int increaseAmount = 50;
 
-        when(productOptionRepository.findById(productOptionId))
+        when(productOptionRepository.findByIdWithLock(productOptionId))
                 .thenReturn(Optional.of(testProductOption));
-        when(stockReservationRepository.findAllReservedByProductOptionId(productOptionId))
-                .thenReturn(List.of());
         when(productOptionRepository.save(any(ProductOption.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(stockHistoryRepository.save(any(StockHistory.class)))
@@ -96,6 +92,8 @@ class StockServiceTest {
 
         // then
         assertThat(result).isNotNull();
+        assertThat(result.getAdjustmentType()).isNotNull();
+        assertThat(result.getAdjustmentType().name()).isEqualTo("ADD");
         verify(productOptionRepository, times(1)).save(any(ProductOption.class));
         verify(stockHistoryRepository, times(1)).save(any(StockHistory.class));
     }
@@ -107,10 +105,8 @@ class StockServiceTest {
         Long productOptionId = 1L;
         int decreaseAmount = -30;
 
-        when(productOptionRepository.findById(productOptionId))
+        when(productOptionRepository.findByIdWithLock(productOptionId))
                 .thenReturn(Optional.of(testProductOption));
-        when(stockReservationRepository.findAllReservedByProductOptionId(productOptionId))
-                .thenReturn(List.of());
         when(productOptionRepository.save(any(ProductOption.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(stockHistoryRepository.save(any(StockHistory.class)))
@@ -121,6 +117,8 @@ class StockServiceTest {
 
         // then
         assertThat(result).isNotNull();
+        assertThat(result.getAdjustmentType()).isNotNull();
+        assertThat(result.getAdjustmentType().name()).isEqualTo("USE");
         verify(productOptionRepository, times(1)).save(any(ProductOption.class));
         verify(stockHistoryRepository, times(1)).save(any(StockHistory.class));
     }
@@ -130,8 +128,7 @@ class StockServiceTest {
     void updateStockZero() {
         // given
         Long productOptionId = 1L;
-        when(productOptionRepository.findById(productOptionId))
-                .thenReturn(Optional.of(testProductOption));
+        // 0 수량은 선행 검증으로 리포지토리 미호출 → 스텁 불필요
 
         // when & then
         assertThatThrownBy(() -> stockService.updateStock(productOptionId, 0, 1L, "재고 변경"))
@@ -146,10 +143,9 @@ class StockServiceTest {
         Long productOptionId = 1L;
         int quantity = 10;
 
-        when(productOptionRepository.findById(productOptionId))
-                .thenReturn(Optional.of(testProductOption));
-        when(stockReservationRepository.findAllReservedByProductOptionId(productOptionId))
-                .thenReturn(List.of());
+        // 재고 충분 → 1 반환
+        when(productOptionRepository.decreaseIfEnough(productOptionId, quantity))
+                .thenReturn(1);
         when(stockReservationRepository.save(any(StockReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -171,10 +167,8 @@ class StockServiceTest {
         Long productOptionId = 1L;
         int excessiveQuantity = 150;
 
-        when(productOptionRepository.findById(productOptionId))
-                .thenReturn(Optional.of(testProductOption));
-        when(stockReservationRepository.findAllReservedByProductOptionId(productOptionId))
-                .thenReturn(List.of());
+        when(productOptionRepository.decreaseIfEnough(productOptionId, excessiveQuantity))
+                .thenReturn(0);
 
         // when & then
         assertThatThrownBy(() -> stockService.reserveStock(orderId, productOptionId, excessiveQuantity))
@@ -190,12 +184,9 @@ class StockServiceTest {
         Long reservationId = 1L;
         StockReservation reservation = StockReservation.create(1L, 1L, 10);
 
-        when(stockReservationRepository.findByStockReservationId(reservationId))
+        when(stockReservationRepository.findByIdWithLock(reservationId))
                 .thenReturn(Optional.of(reservation));
-        when(productOptionRepository.findById(1L))
-                .thenReturn(Optional.of(testProductOption));
-        when(productOptionRepository.save(any(ProductOption.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        // confirm에서는 물리 재고를 변경하지 않음
         when(stockReservationRepository.save(any(StockReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -204,7 +195,6 @@ class StockServiceTest {
 
         // then
         assertThat(result.isConfirmed()).isTrue();
-        verify(productOptionRepository, times(1)).save(any(ProductOption.class));
         verify(stockReservationRepository, times(1)).save(any(StockReservation.class));
     }
 
@@ -215,8 +205,10 @@ class StockServiceTest {
         Long reservationId = 1L;
         StockReservation reservation = StockReservation.create(1L, 1L, 10);
 
-        when(stockReservationRepository.findByStockReservationId(reservationId))
+        when(stockReservationRepository.findByIdWithLock(reservationId))
                 .thenReturn(Optional.of(reservation));
+        when(productOptionRepository.increaseStock(1L, 10))
+                .thenReturn(1);
         when(stockReservationRepository.save(any(StockReservation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -234,9 +226,9 @@ class StockServiceTest {
         // given
         Long reservationId = 1L;
         StockReservation reservation = StockReservation.create(1L, 1L, 10);
-        reservation.confirm();
+        reservation = reservation.confirm();
 
-        when(stockReservationRepository.findByStockReservationId(reservationId))
+        when(stockReservationRepository.findByIdWithLock(reservationId))
                 .thenReturn(Optional.of(reservation));
 
         // when & then
@@ -254,7 +246,7 @@ class StockServiceTest {
                 StockReservation.create(1L, 1L, 10)
         );
 
-        when(stockReservationRepository.findAllByReservationStatus(ReservationStatus.RESERVED))
+        when(stockReservationRepository.findByReservationStatus(ReservationStatus.RESERVED))
                 .thenReturn(reservations);
 
         // when
@@ -263,6 +255,6 @@ class StockServiceTest {
         // then
         assertThat(result).isNotNull();
         verify(stockReservationRepository, times(1))
-                .findAllByReservationStatus(ReservationStatus.RESERVED);
+                .findByReservationStatus(ReservationStatus.RESERVED);
     }
 }

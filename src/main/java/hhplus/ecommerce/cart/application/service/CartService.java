@@ -3,6 +3,7 @@ package hhplus.ecommerce.cart.application.service;
 import hhplus.ecommerce.common.domain.exception.CartException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import hhplus.ecommerce.cart.domain.model.Cart;
 import hhplus.ecommerce.cart.domain.repository.CartRepository;
 import hhplus.ecommerce.product.domain.model.ProductOption;
@@ -19,7 +20,10 @@ public class CartService {
 
     /**
      * 장바구니 추가 (동일 옵션 시 수량 합산)
+     *
+     * @Transactional: 기존 항목 확인 + 수량 업데이트/신규 추가가 원자적으로 처리되어야 함 (읽기 후 쓰기)
      */
+    @Transactional
     public Cart addToCart(Long userId, Long productOptionId, Integer quantity) {
         // 상품 옵션 존재 여부 확인
         ProductOption productOption = productOptionRepository.findById(productOptionId)
@@ -51,7 +55,10 @@ public class CartService {
 
     /**
      * 장바구니 수량 수정
+     *
+     * @Transactional: Cart 조회 + 수량 변경 + 저장이 원자적으로 처리되어야 함
      */
+    @Transactional
     public Cart updateCartQuantity(Long cartId, Integer quantity) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> (CartException.cartUpdateFailed(cartId, "장바구니 항목을 찾을 수 없습니다.")));
@@ -78,13 +85,13 @@ public class CartService {
         if (cartRepository.findById(cartId).isEmpty()) {
             throw CartException.cartItemNotFound(cartId);
         }
-        cartRepository.delete(cartId);
+        cartRepository.deleteById(cartId);
     }
 
     /**
      * 사용자의 특정 상품 전체 삭제
      */
     public void removeByUserIdAndProductId(Long userId, Long productId) {
-        cartRepository.deleteByUserIdAndProductId(userId, productId);
+        cartRepository.deleteByUserIdAndProductOptionId(userId, productId);
     }
 }
