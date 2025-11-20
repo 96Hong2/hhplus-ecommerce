@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -145,6 +147,65 @@ public class ProductService {
                 .orElseThrow(() -> ProductException.productNotFound(productId, ""));
 
         return productOptionRepository.findAllByProductId(productId);
+    }
+
+    /**
+     * 여러 상품 옵션 ID로 배치 조회 (N+1 문제 해결)
+     * @param productOptionIds 상품 옵션 ID 목록
+     * @return 상품 옵션 목록
+     */
+    public List<ProductOption> getProductOptionsByIds(List<Long> productOptionIds) {
+        if (productOptionIds == null || productOptionIds.isEmpty()) {
+            return List.of();
+        }
+        return productOptionRepository.findAllById(productOptionIds);
+    }
+
+    /**
+     * 여러 상품 ID로 상품 정보 배치 조회 (N+1 문제 해결)
+     * @param productIds 상품 ID 목록
+     * @return 상품 ID를 키로 하는 ProductDetailResponse Map
+     */
+    public Map<Long, ProductDetailResponse> getProductDetailsByIds(List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Map.of();
+        }
+
+        // 상품 엔티티 조회
+        List<Product> products = productRepository.findAllById(productIds);
+
+        // 각 상품에 대한 옵션 조회
+        List<ProductOption> allOptions = productOptionRepository.findAllByProductIdIn(productIds);
+
+        // productId별로 옵션 그룹화
+        Map<Long, List<ProductOption>> optionsByProductId = allOptions.stream()
+                .collect(Collectors.groupingBy(ProductOption::getProductId));
+
+        // ProductDetailResponse로 변환
+        return products.stream()
+                .collect(Collectors.toMap(
+                        Product::getProductId,
+                        product -> {
+                            List<ProductOption> options = optionsByProductId.getOrDefault(
+                                    product.getProductId(),
+                                    List.of()
+                            );
+                            return new ProductDetailResponse(
+                                    product.getProductId(),
+                                    product.getProductName(),
+                                    product.getCategory(),
+                                    product.getDescription(),
+                                    product.getImageUrl(),
+                                    product.getPrice(),
+                                    product.isExposed(),
+                                    product.getCreatedAt(),
+                                    product.getUpdatedAt(),
+                                    options.stream()
+                                            .map(po -> new ProductMapper().toProductOptionResponse(po))
+                                            .toList()
+                            );
+                        }
+                ));
     }
 
     /**

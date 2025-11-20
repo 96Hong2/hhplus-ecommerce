@@ -29,6 +29,11 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Redis
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.redisson:redisson-spring-boot-starter:3.24.3")
+
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.mysql:mysql-connector-j") // mysql connector
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
@@ -42,6 +47,8 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     // MySQL 컨테이너
     testImplementation("org.testcontainers:mysql")
+    // Redis Testcontainers
+    testImplementation("com.redis:testcontainers-redis:2.2.2")
 }
 
 tasks.withType<Test> {
