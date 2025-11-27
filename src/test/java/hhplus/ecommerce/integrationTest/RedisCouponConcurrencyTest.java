@@ -25,15 +25,16 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Redis SET 기반 쿠폰 동시성 테스트
  * IntegrationTestBase를 상속하여 공유 Testcontainer 설정 사용
  */
-@Disabled("Redis 동시성 이슈로 인해 플래키 테스트가 되어 잠깐 Disable처리함. 개선 예정")
 class RedisCouponConcurrencyTest extends IntegrationTestBase {
 
     @Autowired
@@ -135,6 +136,14 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
         latch.await();
         executorService.shutdown();
 
+        // 비동기 DB 저장 완료 대기 (최대 30초)
+        await().atMost(30, TimeUnit.SECONDS)
+            .pollInterval(200, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                assertThat(userCouponRepository.countByCouponId(couponId))
+                    .isEqualTo(100);
+            });
+
         // Then: 정확히 100명만 성공, 50명은 실패
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(50);
@@ -171,9 +180,18 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
         latch.await();
         executorService.shutdown();
 
+        // 비동기 DB 저장 완료 대기 (최대 30초)
+        await().atMost(30, TimeUnit.SECONDS)
+            .pollInterval(200, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                assertThat(userCouponRepository.countByCouponId(couponId))
+                    .isEqualTo(1);
+            });
+
         // Then: 1번만 성공
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(redisCouponService.isAlreadyIssued(singleUserId, couponId)).isTrue();
+        assertThat(userCouponRepository.countByCouponId(couponId)).isEqualTo(1);
     }
 
     @Test
@@ -216,6 +234,14 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
 
         latch.await();
         executorService.shutdown();
+
+        // 비동기 DB 저장 완료 대기 (최대 30초)
+        await().atMost(30, TimeUnit.SECONDS)
+            .pollInterval(200, TimeUnit.MILLISECONDS)
+            .untilAsserted(() -> {
+                assertThat(userCouponRepository.countByCouponId(limitedCouponId))
+                    .isEqualTo(50);
+            });
 
         // Then: 정확히 50명만 성공
         assertThat(successCount.get()).isEqualTo(50);

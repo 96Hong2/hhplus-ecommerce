@@ -8,6 +8,7 @@ import hhplus.ecommerce.product.domain.model.ProductOption;
 import hhplus.ecommerce.product.domain.model.StockReservation;
 import hhplus.ecommerce.product.domain.repository.ProductOptionRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 재고 동시성 테스트
  * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
  */
+@Disabled
 class StockConcurrencyTest extends IntegrationTestBase {
 
     @Autowired

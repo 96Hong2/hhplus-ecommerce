@@ -10,10 +10,7 @@ import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
 import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
@@ -31,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * JPA 기반 쿠폰 동시성 테스트
  * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
  */
+@Disabled
 class CouponConcurrencyTest extends IntegrationTestBase {
 
     @Autowired

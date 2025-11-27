@@ -12,23 +12,28 @@ import hhplus.ecommerce.order.presentation.dto.request.PaymentRequest;
 import hhplus.ecommerce.order.presentation.dto.response.OrderCreateResponse;
 import hhplus.ecommerce.order.presentation.dto.response.PaymentResponse;
 import hhplus.ecommerce.point.application.service.PointService;
+import hhplus.ecommerce.point.domain.repository.PointHistoryRepository;
 import hhplus.ecommerce.product.application.service.ProductService;
 import hhplus.ecommerce.product.domain.model.Product;
 import hhplus.ecommerce.product.domain.model.ProductOption;
 import hhplus.ecommerce.product.domain.repository.ProductOptionRepository;
+import hhplus.ecommerce.product.domain.repository.ProductRepository;
+import hhplus.ecommerce.product.domain.repository.StockReservationRepository;
 import hhplus.ecommerce.user.domain.model.User;
 import hhplus.ecommerce.user.domain.model.UserRole;
 import hhplus.ecommerce.user.domain.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * JPA 기반 주문/결제 통합 테스트
@@ -57,8 +62,19 @@ class OrderPaymentIntegrationTest extends IntegrationTestBase {
     @Autowired
     private ProductOptionRepository productOptionRepository;
 
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private StockReservationRepository stockReservationRepository;
+
+    @Autowired
+    private PointHistoryRepository pointHistoryRepository;
+
     private Long userId;
     private Long productOptionId;
+    private List<Long> testProductIds = new ArrayList<>();
+    private List<Long> testProductOptionIds = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -89,11 +105,30 @@ class OrderPaymentIntegrationTest extends IntegrationTestBase {
         );
 
         productOptionId = productOption.getProductOptionId();
+        testProductIds.add(product.getProductId());
+        testProductOptionIds.add(productOptionId);
+    }
+
+    @AfterEach
+    void tearDown() {
+        // 외래키 순서 고려하여 데이터 정리
+        stockReservationRepository.deleteAll();
+        orderRepository.deleteAll();
+        pointHistoryRepository.deleteAll();
+
+        if (!testProductOptionIds.isEmpty()) {
+            productOptionRepository.deleteAllById(testProductOptionIds);
+        }
+        if (!testProductIds.isEmpty()) {
+            productRepository.deleteAllById(testProductIds);
+        }
+        if (userId != null) {
+            userRepository.deleteById(userId);
+        }
     }
 
     @Test
     @DisplayName("통합 테스트: 주문 생성 -> 결제 -> 재고 확정 플로우")
-    @Transactional
     void orderAndPaymentFlow() {
         // Given: 주문 요청 생성
         OrderItemRequest itemRequest = new OrderItemRequest();
@@ -128,7 +163,6 @@ class OrderPaymentIntegrationTest extends IntegrationTestBase {
 
     @Test
     @DisplayName("통합 테스트: 포인트 부족 시 주문 생성은 되나 결제 실패")
-    @Transactional
     void paymentFailsWhenInsufficientPoints() {
         // Given: 포인트를 모두 사용
         User user = userRepository.findById(userId).orElseThrow();
@@ -153,6 +187,9 @@ class OrderPaymentIntegrationTest extends IntegrationTestBase {
                 true
         );
 
+        testProductIds.add(expensiveProduct.getProductId());
+        testProductOptionIds.add(expensiveOption.getProductOptionId());
+
         // When: 주문 생성 (PENDING 상태)
         OrderItemRequest itemRequest = new OrderItemRequest();
         itemRequest.setProductOptionId(expensiveOption.getProductOptionId());
@@ -172,12 +209,9 @@ class OrderPaymentIntegrationTest extends IntegrationTestBase {
         PaymentRequest paymentRequest = new PaymentRequest();
         paymentRequest.setPaymentMethod("POINT");
 
-        try {
-            paymentService.payOrder(orderId, paymentRequest);
-        } catch (Exception e) {
-            // 포인트 부족 예외 발생 확인
-            assertThat(e.getMessage()).contains("포인트");
-        }
+        // 포인트 부족 예외 발생 확인
+        assertThatThrownBy(() -> paymentService.payOrder(orderId, paymentRequest))
+                .hasMessageContaining("포인트");
 
         // Then: 주문 상태는 여전히 PENDING
         Order order = orderRepository.findById(orderId).orElseThrow();

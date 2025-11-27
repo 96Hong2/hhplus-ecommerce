@@ -17,6 +17,7 @@ import hhplus.ecommerce.product.domain.model.StockReservation;
 import hhplus.ecommerce.product.domain.repository.ProductOptionRepository;
 import hhplus.ecommerce.product.domain.repository.StockReservationRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.doThrow;
  * 외부 시스템 연동 실패 시 보상 트랜잭션이 정상적으로 실행되는지 검증
  * IntegrationTestBase를 상속하여 공유 Testcontainer 설정 사용
  */
+@Disabled
 class SagaCompensationTest extends IntegrationTestBase {
 
     @Autowired

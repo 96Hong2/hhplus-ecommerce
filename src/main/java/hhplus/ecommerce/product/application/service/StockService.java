@@ -1,5 +1,6 @@
 package hhplus.ecommerce.product.application.service;
 
+import hhplus.ecommerce.common.application.DistributedLock;
 import hhplus.ecommerce.common.domain.exception.ProductException;
 import hhplus.ecommerce.common.domain.exception.StockException;
 import hhplus.ecommerce.product.domain.model.ProductOption;
@@ -11,11 +12,11 @@ import hhplus.ecommerce.product.domain.repository.StockHistoryRepository;
 import hhplus.ecommerce.product.domain.repository.StockReservationRepository;
 import hhplus.ecommerce.product.presentation.dto.response.StockResponse;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +26,8 @@ public class StockService {
     private final ProductOptionRepository productOptionRepository;
     private final StockReservationRepository stockReservationRepository;
     private final StockHistoryRepository stockHistoryRepository;
+    private final RedissonClient redissonClient;
+    private final String STOCK_LOCK_KEY_PREFIX = "stock:lock:";
 
     /**
      * 상품 재고 조회
@@ -117,6 +120,27 @@ public class StockService {
             }
         }
         throw ProductException.productOptionNotFound(productOptionId);
+    }
+
+    /**
+     * 재고 예약 (주문 생성 시 호출)
+     * @param orderId 주문 ID
+     * @param productOptionId 상품 옵션 ID
+     * @param quantity 예약 수량
+     * @return 재고 예약 정보 (15분간 유효)
+     *
+     * Redisson 분산 락 AOP 사용
+     */
+    @DistributedLock(key = "#productOptionId")
+    @Transactional
+    public StockReservation reserveStockWithRLock(Long orderId, Long productOptionId, int quantity) {
+        int updated = productOptionRepository.decreaseIfEnough(productOptionId, quantity);
+        if (updated != 1) {
+            throw StockException.stockQuantityInsufficient(productOptionId, quantity, 0);
+        }
+
+        StockReservation reservation = StockReservation.create(productOptionId, orderId, quantity);
+        return stockReservationRepository.save(reservation);
     }
 
     /**

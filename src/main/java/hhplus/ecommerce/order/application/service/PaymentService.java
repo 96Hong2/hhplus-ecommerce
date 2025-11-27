@@ -1,5 +1,6 @@
 package hhplus.ecommerce.order.application.service;
 
+import hhplus.ecommerce.common.application.DistributedLock;
 import hhplus.ecommerce.common.domain.exception.OrderException;
 import hhplus.ecommerce.order.domain.model.Order;
 import hhplus.ecommerce.order.domain.model.OrderItem;
@@ -36,6 +37,7 @@ public class PaymentService {
      * @param request 결제 요청 (결제 수단)
      * @return 결제 완료 응답
      */
+    @DistributedLock(key = "#orderId")
     @Transactional
     public PaymentResponse payOrder(Long orderId, PaymentRequest request) {
         // 1. 주문 조회 및 상태 확인

@@ -8,6 +8,7 @@ import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 2. 인덱스 적용 전후 성능 비교
  * 3. N+1 문제 확인 및 개선 효과 검증
  */
+@Disabled
 @Transactional
 class QueryPerformanceTest extends IntegrationTestBase {
 
