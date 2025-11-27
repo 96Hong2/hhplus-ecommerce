@@ -1,6 +1,6 @@
 package hhplus.ecommerce.integrationTest;
 
-import hhplus.ecommerce.context.TestContainersConfiguration;
+import hhplus.ecommerce.context.IntegrationTestBase;
 import hhplus.ecommerce.coupon.application.service.CouponService;
 import hhplus.ecommerce.coupon.application.service.RedisCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
@@ -15,11 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,18 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Redis SET 기반 쿠폰 동시성 테스트
- * TestContainersConfiguration을 사용하여 공유 MySQL + Redis 컨테이너에서 테스트
+ * IntegrationTestBase를 상속하여 공유 Testcontainer 설정 사용
  */
-@SpringBootTest
-@Import(TestContainersConfiguration.class)
-class RedisCouponConcurrencyTest {
-
-    // Redis 연결 정보를 동적으로 설정
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", TestContainersConfiguration.redisContainer::getHost);
-        registry.add("spring.data.redis.port", TestContainersConfiguration.redisContainer::getFirstMappedPort);
-    }
+class RedisCouponConcurrencyTest extends IntegrationTestBase {
 
     @Autowired
     private CouponService couponService;

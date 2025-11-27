@@ -1,6 +1,6 @@
 package hhplus.ecommerce.integrationTest;
 
-import hhplus.ecommerce.context.TestContainersConfiguration;
+import hhplus.ecommerce.context.IntegrationTestBase;
 import hhplus.ecommerce.coupon.application.service.CouponService;
 import hhplus.ecommerce.coupon.application.service.UserCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
@@ -15,9 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,10 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * JPA 기반 쿠폰 동시성 테스트
  * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
  */
-@SpringBootTest
-@Import(TestContainersConfiguration.class)
-@TestPropertySource(locations = "classpath:application-test.properties")
-class CouponConcurrencyTest {
+class CouponConcurrencyTest extends IntegrationTestBase {
 
     @Autowired
     private CouponService couponService;
