@@ -9,6 +9,8 @@ import hhplus.ecommerce.product.domain.repository.ProductOptionRepository;
 import hhplus.ecommerce.product.domain.repository.ProductRepository;
 import hhplus.ecommerce.product.presentation.dto.response.ProductDetailResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -80,9 +82,11 @@ public class ProductService {
 
     /**
      * 상품 상세 조회 (옵션 포함)
+     * Redis 캐싱 적용: TTL 30분
      * @param productId 상품 ID
      * @return 상품 상세 정보
      */
+    @Cacheable(value = "productDetail", key = "#productId")
     public ProductDetailResponse getProductDetail(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> ProductException.productNotFound(productId, ""));
@@ -105,6 +109,7 @@ public class ProductService {
 
     /**
      * 상품 수정
+     * 상품 수정 시 캐시 무효화
      * @param productId 상품 ID
      * @param productName 상품명
      * @param category 카테고리
@@ -114,6 +119,7 @@ public class ProductService {
      * @param isExposed 노출 여부
      * @return 수정된 상품
      */
+    @CacheEvict(value = "productDetail", key = "#productId")
     public Product updateProduct(Long productId, String productName, String category,
                                 String description, String imageUrl, BigDecimal price, long salesCount, boolean isExposed) {
         Product product = productRepository.findById(productId)
@@ -126,8 +132,10 @@ public class ProductService {
 
     /**
      * 상품 삭제 (논리 삭제)
+     * 상품 삭제 시 캐시 무효화
      * @param productId 상품 ID
      */
+    @CacheEvict(value = "productDetail", key = "#productId")
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> ProductException.productNotFound(productId, ""));
@@ -210,10 +218,12 @@ public class ProductService {
 
     /**
      * 인기 상품 조회 (최근 집계일수간 판매량 기준)
+     * Redis 캐싱 적용: TTL 1시간
      * @param TopN 조회할 상품 개수
      * @param searchDays 집계 일수
      * @return 인기 상품 목록
      */
+    @Cacheable(value = "popularProducts", key = "#TopN + ':' + #searchDays")
     public List<Product> getTopProducts(int TopN, int searchDays) {
         if (TopN > BusinessConstants.MAX_RANK || TopN <= 0 || searchDays <= 0) {
             String message = String.format("집계 일수는 1 이상, 조회할 상품 수는 1 이상 %d개 이하여야 합니다. 조회할 상품 수: %d, 집계 일수: %d", BusinessConstants.MAX_RANK, TopN, searchDays);
@@ -249,12 +259,14 @@ public class ProductService {
 
     /**
      * 상품 옵션 수정
+     * 옵션 수정 시 해당 상품의 캐시 무효화
      * @param productOptionId 상품 옵션 ID
      * @param optionName 옵션명
      * @param priceAdjustment 옵션 가격 조정값
      * @param isExposed 노출 여부
      * @return 수정된 상품 옵션
      */
+    @CacheEvict(value = "productDetail", key = "#result.productId")
     public ProductOption updateProductOption(Long productOptionId, String optionName,
                                      BigDecimal priceAdjustment, boolean isExposed) {
         ProductOption productOption = productOptionRepository.findById(productOptionId)
