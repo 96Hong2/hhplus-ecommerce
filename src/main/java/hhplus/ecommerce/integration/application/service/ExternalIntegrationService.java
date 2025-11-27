@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ExternalIntegrationService {
 
     private final ExternalIntegrationLogJpaRepository integrationLogRepository;
+    private boolean isSimulation = false;
 
     /**
      * ERP 시스템으로 주문 정보 전송
@@ -103,18 +104,21 @@ public class ExternalIntegrationService {
      * 외부 시스템 API 호출 시뮬레이션
      */
     private void sendToExternalSystem(Order order) {
+        if (isSimulation) {
+            // 시뮬레이션: 10% 확률로 실패
+            if (Math.random() < 0.1) {
+                throw new RuntimeException("외부 시스템 일시적 장애");
+            }
 
-        // 시뮬레이션: 10% 확률로 실패
-        if (Math.random() < 0.1) {
-            throw new RuntimeException("외부 시스템 일시적 장애");
+            // 시뮬레이션: 네트워크 지연
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
 
-        // 시뮬레이션: 네트워크 지연
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        log.debug("send order to external system!");
     }
 
     /**
@@ -131,5 +135,9 @@ public class ExternalIntegrationService {
 
             // 재시도 로직
         }
+    }
+
+    public void setSimulation(boolean simulation) {
+        this.isSimulation = simulation;
     }
 }
