@@ -2,6 +2,7 @@ package hhplus.ecommerce.coupon.application.service;
 
 import hhplus.ecommerce.common.domain.exception.CouponException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
@@ -60,6 +61,7 @@ public class CouponService {
 
     /**
      * 쿠폰 ID로 조회
+     * (JPA 엔티티 직렬화 문제로 캐싱 미적용)
      */
     public Coupon getCouponById(Long couponId) {
         return couponRepository.findById(couponId)

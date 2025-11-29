@@ -9,10 +9,14 @@ import hhplus.ecommerce.product.domain.repository.ProductOptionRepository;
 import hhplus.ecommerce.product.domain.repository.ProductRepository;
 import hhplus.ecommerce.product.presentation.dto.response.ProductDetailResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -78,9 +82,11 @@ public class ProductService {
 
     /**
      * 상품 상세 조회 (옵션 포함)
+     * Redis 캐싱 적용: TTL 30분
      * @param productId 상품 ID
      * @return 상품 상세 정보
      */
+    @Cacheable(value = "productDetail", key = "#productId")
     public ProductDetailResponse getProductDetail(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> ProductException.productNotFound(productId, ""));
@@ -103,6 +109,7 @@ public class ProductService {
 
     /**
      * 상품 수정
+     * 상품 수정 시 캐시 무효화
      * @param productId 상품 ID
      * @param productName 상품명
      * @param category 카테고리
@@ -112,6 +119,7 @@ public class ProductService {
      * @param isExposed 노출 여부
      * @return 수정된 상품
      */
+    @CacheEvict(value = "productDetail", key = "#productId")
     public Product updateProduct(Long productId, String productName, String category,
                                 String description, String imageUrl, BigDecimal price, long salesCount, boolean isExposed) {
         Product product = productRepository.findById(productId)
@@ -124,8 +132,10 @@ public class ProductService {
 
     /**
      * 상품 삭제 (논리 삭제)
+     * 상품 삭제 시 캐시 무효화
      * @param productId 상품 ID
      */
+    @CacheEvict(value = "productDetail", key = "#productId")
     public void deleteProduct(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> ProductException.productNotFound(productId, ""));
@@ -148,11 +158,72 @@ public class ProductService {
     }
 
     /**
+     * 여러 상품 옵션 ID로 배치 조회 (N+1 문제 해결)
+     * @param productOptionIds 상품 옵션 ID 목록
+     * @return 상품 옵션 목록
+     */
+    public List<ProductOption> getProductOptionsByIds(List<Long> productOptionIds) {
+        if (productOptionIds == null || productOptionIds.isEmpty()) {
+            return List.of();
+        }
+        return productOptionRepository.findAllById(productOptionIds);
+    }
+
+    /**
+     * 여러 상품 ID로 상품 정보 배치 조회 (N+1 문제 해결)
+     * @param productIds 상품 ID 목록
+     * @return 상품 ID를 키로 하는 ProductDetailResponse Map
+     */
+    public Map<Long, ProductDetailResponse> getProductDetailsByIds(List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Map.of();
+        }
+
+        // 상품 엔티티 조회
+        List<Product> products = productRepository.findAllById(productIds);
+
+        // 각 상품에 대한 옵션 조회
+        List<ProductOption> allOptions = productOptionRepository.findAllByProductIdIn(productIds);
+
+        // productId별로 옵션 그룹화
+        Map<Long, List<ProductOption>> optionsByProductId = allOptions.stream()
+                .collect(Collectors.groupingBy(ProductOption::getProductId));
+
+        // ProductDetailResponse로 변환
+        return products.stream()
+                .collect(Collectors.toMap(
+                        Product::getProductId,
+                        product -> {
+                            List<ProductOption> options = optionsByProductId.getOrDefault(
+                                    product.getProductId(),
+                                    List.of()
+                            );
+                            return new ProductDetailResponse(
+                                    product.getProductId(),
+                                    product.getProductName(),
+                                    product.getCategory(),
+                                    product.getDescription(),
+                                    product.getImageUrl(),
+                                    product.getPrice(),
+                                    product.isExposed(),
+                                    product.getCreatedAt(),
+                                    product.getUpdatedAt(),
+                                    options.stream()
+                                            .map(po -> new ProductMapper().toProductOptionResponse(po))
+                                            .toList()
+                            );
+                        }
+                ));
+    }
+
+    /**
      * 인기 상품 조회 (최근 집계일수간 판매량 기준)
+     * Redis 캐싱 적용: TTL 1시간
      * @param TopN 조회할 상품 개수
      * @param searchDays 집계 일수
      * @return 인기 상품 목록
      */
+    @Cacheable(value = "popularProducts", key = "#TopN + ':' + #searchDays")
     public List<Product> getTopProducts(int TopN, int searchDays) {
         if (TopN > BusinessConstants.MAX_RANK || TopN <= 0 || searchDays <= 0) {
             String message = String.format("집계 일수는 1 이상, 조회할 상품 수는 1 이상 %d개 이하여야 합니다. 조회할 상품 수: %d, 집계 일수: %d", BusinessConstants.MAX_RANK, TopN, searchDays);
@@ -188,12 +259,14 @@ public class ProductService {
 
     /**
      * 상품 옵션 수정
+     * 옵션 수정 시 해당 상품의 캐시 무효화
      * @param productOptionId 상품 옵션 ID
      * @param optionName 옵션명
      * @param priceAdjustment 옵션 가격 조정값
      * @param isExposed 노출 여부
      * @return 수정된 상품 옵션
      */
+    @CacheEvict(value = "productDetail", key = "#result.productId")
     public ProductOption updateProductOption(Long productOptionId, String optionName,
                                      BigDecimal priceAdjustment, boolean isExposed) {
         ProductOption productOption = productOptionRepository.findById(productOptionId)

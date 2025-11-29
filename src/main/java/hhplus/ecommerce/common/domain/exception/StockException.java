@@ -74,4 +74,9 @@ public class StockException extends BusinessException {
         String message = String.format("예약된 재고량이 실제 재고량보다 많습니다. [실제 재고량 : %d, 예약 재고량 : %d]", physicalQuantity, reservedQuantity);
         return new StockException(ErrorCode.STOCK_RESERVATION_FAILED, message);
     }
+
+    public static StockException stockReservationFailed(Long productOptionId, String reason) {
+        String message = String.format("재고 예약에 실패했습니다. [상품옵션ID: %d, 사유: %s]", productOptionId, reason);
+        return new StockException(ErrorCode.STOCK_RESERVATION_FAILED, message);
+    }
 }

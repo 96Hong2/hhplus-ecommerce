@@ -1,5 +1,6 @@
 package hhplus.ecommerce.context;
 
+import com.redis.testcontainers.RedisContainer;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +14,7 @@ import java.time.Duration;
 public class TestContainersConfiguration {
 
     // 싱글톤으로 만들어서 모든 테스트가 동일한 컨테이너 사용하도록 함
-    static MySQLContainer<?> mySQLContainer =
+    public static MySQLContainer<?> mySQLContainer =
             new MySQLContainer<>(DockerImageName.parse("mysql:8.0"))
             .withDatabaseName("ecommerce_test")
             .withUsername("test")
@@ -22,9 +23,27 @@ public class TestContainersConfiguration {
             .waitingFor(Wait.forLogMessage(".*ready for connections.*", 2)) // MySQL 8은 2번 출력
             .withStartupTimeout(Duration.ofSeconds(90));
 
+    // Redis Testcontainer 추가 (public으로 변경하여 테스트에서 접근 가능하도록)
+    public static RedisContainer redisContainer =
+            new RedisContainer(DockerImageName.parse("redis:7-alpine"))
+            .withExposedPorts(6379)
+            .withStartupTimeout(Duration.ofSeconds(60));
+
+    static {
+        // Redis 컨테이너 시작
+        if (!redisContainer.isRunning()) {
+            redisContainer.start();
+        }
+    }
+
     @Bean
     @ServiceConnection
     MySQLContainer<?> mySQLContainer() {
         return mySQLContainer;
+    }
+
+    @Bean
+    RedisContainer redisContainer() {
+        return redisContainer;
     }
 }

@@ -29,12 +29,17 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 	implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Redis
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.redisson:redisson-spring-boot-starter:3.52.0")
+
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.mysql:mysql-connector-j") // mysql connector
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // Spring Boot Testcontainers 지원
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
@@ -42,6 +47,10 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     // MySQL 컨테이너
     testImplementation("org.testcontainers:mysql")
+    // Redis Testcontainers
+    testImplementation("com.redis:testcontainers-redis:2.2.2")
+    // 비동기 작업 완료 대기
+    testImplementation("org.awaitility:awaitility:4.2.0")
 }
 
 tasks.withType<Test> {

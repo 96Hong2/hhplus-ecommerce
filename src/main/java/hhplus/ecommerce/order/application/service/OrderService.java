@@ -14,6 +14,7 @@ import hhplus.ecommerce.order.presentation.dto.request.OrderItemRequest;
 import hhplus.ecommerce.product.application.service.ProductService;
 import hhplus.ecommerce.product.application.service.StockService;
 import hhplus.ecommerce.product.domain.model.ProductOption;
+import hhplus.ecommerce.product.presentation.dto.response.ProductDetailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -99,6 +102,86 @@ public class OrderService {
         }
 
         return orderItemInfos;
+    }
+
+    /**
+     * 여러 주문 요청 아이템으로부터 주문 아이템 정보를 배치로 수집 (N+1 문제 해결)
+     * @param itemRequests 주문 아이템 요청 목록
+     * @return 주문 아이템 정보 목록
+     */
+    public List<OrderItemInfo> collectOrderItemsBatch(List<OrderItemRequest> itemRequests) {
+        if (itemRequests == null || itemRequests.isEmpty()) {
+            throw OrderException.orderItemsEmpty();
+        }
+
+        // 1. 모든 productOptionId를 추출
+        List<Long> productOptionIds = itemRequests.stream()
+                .map(OrderItemRequest::getProductOptionId)
+                .distinct()
+                .toList();
+
+        // 2. 상품 옵션을 한 번에 조회
+        List<ProductOption> productOptions = productService.getProductOptionsByIds(productOptionIds);
+
+        // 3. 상품 옵션이 모두 존재하는지 검증
+        if (productOptions.size() != productOptionIds.size()) {
+            List<Long> foundIds = productOptions.stream()
+                    .map(ProductOption::getProductOptionId)
+                    .toList();
+            List<Long> missingIds = productOptionIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .toList();
+            throw OrderException.orderCreationFailed(
+                    "상품 옵션을 찾을 수 없습니다. IDs: " + missingIds);
+        }
+
+        // 4. productId를 추출하여 상품 정보를 한 번에 조회
+        List<Long> productIds = productOptions.stream()
+                .map(ProductOption::getProductId)
+                .distinct()
+                .toList();
+
+        Map<Long, ProductDetailResponse> productDetailMap = productService.getProductDetailsByIds(productIds);
+
+        // 5. Map으로 변환하여 빠른 조회
+        Map<Long, ProductOption> productOptionMap = productOptions.stream()
+                .collect(Collectors.toMap(ProductOption::getProductOptionId, Function.identity()));
+
+        // 6. OrderItemInfo 생성
+        return itemRequests.stream()
+                .map(request -> {
+                    ProductOption productOption = productOptionMap.get(request.getProductOptionId());
+                    if (productOption == null) {
+                        throw OrderException.orderCreationFailed(
+                                "상품 옵션을 찾을 수 없습니다. ID: " + request.getProductOptionId());
+                    }
+
+                    ProductDetailResponse productDetail = productDetailMap.get(productOption.getProductId());
+                    if (productDetail == null) {
+                        throw OrderException.orderCreationFailed(
+                                "상품 정보를 찾을 수 없습니다. ID: " + productOption.getProductId());
+                    }
+
+                    // 최종 단가 계산
+                    BigDecimal unitPrice = calculateUnitPrice(
+                            productDetail.getPrice(),
+                            productOption.getPriceAdjustment()
+                    );
+
+                    // 소계 계산
+                    BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(request.getQuantity()));
+
+                    return new OrderItemInfo(
+                            productOption.getProductId(),
+                            productOption.getProductOptionId(),
+                            productDetail.getProductName(),
+                            productOption.getOptionName(),
+                            request.getQuantity(),
+                            unitPrice,
+                            subtotal
+                    );
+                })
+                .toList();
     }
 
     /**
@@ -252,6 +335,25 @@ public class OrderService {
             return orderRepository.findByUserIdAndOrderStatus(userId, status);
         }
         return orderRepository.findByUserId(userId);
+    }
+
+    /**
+     * 주문 취소 (보상 트랜잭션)
+     * @param orderId 취소할 주문 ID
+     * @return 취소된 주문
+     */
+    public Order cancelOrder(Long orderId) {
+        Order order = getOrder(orderId);
+        Order cancelledOrder = order.cancel();
+        return orderRepository.save(cancelledOrder);
+    }
+
+    /**
+     * 주문 번호로 주문 조회
+     */
+    public Order getOrderByOrderNumber(String orderNumber) {
+        return orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> OrderException.orderNotFoundByNumber(orderNumber));
     }
 }
 

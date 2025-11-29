@@ -3,6 +3,7 @@ package hhplus.ecommerce.coupon.presentation.controller;
 import hhplus.ecommerce.common.presentation.response.ApiResponse;
 import hhplus.ecommerce.coupon.application.service.CouponMapper;
 import hhplus.ecommerce.coupon.application.service.CouponService;
+import hhplus.ecommerce.coupon.application.service.RedisCouponService;
 import hhplus.ecommerce.coupon.application.service.UserCouponService;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.DiscountType;
@@ -12,6 +13,7 @@ import hhplus.ecommerce.coupon.presentation.dto.request.CouponIssueRequest;
 import hhplus.ecommerce.coupon.presentation.dto.response.CouponResponse;
 import hhplus.ecommerce.coupon.presentation.dto.response.UserCouponResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +26,9 @@ public class CouponController {
     private final CouponService couponService;
     private final UserCouponService userCouponService;
     private final CouponMapper couponMapper;
+
+    @Autowired(required = false)
+    private RedisCouponService redisCouponService;
 
     public CouponController(CouponService couponService,
                             UserCouponService userCouponService,
@@ -102,7 +107,7 @@ public class CouponController {
     }
 
     /**
-     * 선착순 쿠폰 발급
+     * 선착순 쿠폰 발급 (DB 비관적 락)
      * PATCH /api/coupons/{couponId}/issue
      */
     @PatchMapping("/{couponId}/issue")
@@ -115,5 +120,26 @@ public class CouponController {
         UserCouponResponse response = couponMapper.toUserCouponResponse(userCoupon, coupon);
 
         return ApiResponse.success(response, "선착순 쿠폰이 발급되었습니다.");
+    }
+
+    /**
+     * 선착순 쿠폰 발급 (Redis SET)
+     * PATCH /api/coupons/{couponId}/issue-redis
+     */
+    @PatchMapping("/{couponId}/issue-redis")
+    public ApiResponse<UserCouponResponse> issueFirstComeCouponWithRedis(
+            @PathVariable Long couponId,
+            @Valid @RequestBody CouponIssueRequest request) {
+
+        if (redisCouponService == null) {
+            // Redis가 활성화되지 않은 경우 DB 락 방식으로 폴백
+            return issueFirstComeCoupon(couponId, request);
+        }
+
+        UserCoupon userCoupon = redisCouponService.issueCouponWithRedis(request.getUserId(), couponId);
+        Coupon coupon = couponService.getCouponById(couponId);
+        UserCouponResponse response = couponMapper.toUserCouponResponse(userCoupon, coupon);
+
+        return ApiResponse.success(response, "선착순 쿠폰이 발급되었습니다. (Redis)");
     }
 }

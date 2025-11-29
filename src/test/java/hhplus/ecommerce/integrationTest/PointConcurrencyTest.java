@@ -1,6 +1,6 @@
 package hhplus.ecommerce.integrationTest;
 
-import hhplus.ecommerce.context.TestContainersConfiguration;
+import hhplus.ecommerce.context.IntegrationTestBase;
 import hhplus.ecommerce.point.application.service.PointService;
 import hhplus.ecommerce.point.domain.repository.PointHistoryRepository;
 import hhplus.ecommerce.user.domain.model.User;
@@ -11,9 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
@@ -26,10 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 포인트 동시성 테스트
  * TestContainersConfiguration을 사용하여 공유 MySQL 컨테이너에서 테스트
  */
-@SpringBootTest
-@Import(TestContainersConfiguration.class)
-@TestPropertySource(locations = "classpath:application-test.properties")
-class PointConcurrencyTest {
+class PointConcurrencyTest extends IntegrationTestBase {
 
     @Autowired
     private PointService pointService;

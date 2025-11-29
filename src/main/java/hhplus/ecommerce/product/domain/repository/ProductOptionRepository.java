@@ -25,6 +25,10 @@ public interface ProductOptionRepository extends JpaRepository<ProductOption, Lo
 
     List<ProductOption> findAllByProductId(Long productId);
 
+    // 여러 상품 ID로 배치 조회
+    @Query("SELECT po FROM ProductOption po WHERE po.productId IN :productIds")
+    List<ProductOption> findAllByProductIdIn(@Param("productIds") List<Long> productIds);
+
     // 조건부 감소: 재고가 충분할 때만 감소 (원자적 DML)
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE ProductOption po SET po.stockQuantity = po.stockQuantity - :qty WHERE po.productOptionId = :id AND po.stockQuantity >= :qty")
