@@ -1,5 +1,6 @@
 package hhplus.ecommerce.product.application.service;
 
+import hhplus.ecommerce.product.application.dto.ProductRankingDto;
 import hhplus.ecommerce.product.domain.model.PopularProduct;
 import hhplus.ecommerce.product.domain.model.Product;
 import hhplus.ecommerce.product.domain.model.ProductOption;
@@ -66,6 +67,23 @@ public class ProductMapper {
                 popularProduct.getCalculationDate().atStartOfDay(),
                 popularProduct.getRank(),
                 popularProduct.getCreatedAt()
+        );
+    }
+
+    /**
+     * ProductRankingDto를 ProductListResponse로 변환 (인기 상품 조회용)
+     */
+    public ProductListResponse toProductListResponse(ProductRankingDto rankingDto) {
+        return new ProductListResponse(
+                rankingDto.getProductId(),
+                rankingDto.getProductName(),
+                null, // category - 랭킹 DTO에는 없음
+                null, // description - 랭킹 DTO에는 없음
+                rankingDto.getImageUrl(),
+                null, // price - 랭킹 DTO에는 없음
+                true, // isExposed - 랭킹에 노출된 상품은 당연히 exposed
+                null, // createdAt - 랭킹 DTO에는 없음
+                null  // updatedAt - 랭킹 DTO에는 없음
         );
     }
 }

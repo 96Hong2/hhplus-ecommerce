@@ -2,6 +2,7 @@ package hhplus.ecommerce.unitTest.product.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
+import hhplus.ecommerce.product.application.dto.ProductRankingDto;
 import hhplus.ecommerce.product.application.service.ProductMapper;
 import hhplus.ecommerce.product.application.service.ProductService;
 import hhplus.ecommerce.product.domain.model.Product;
@@ -123,10 +124,20 @@ class ProductControllerTest {
     @Test
     @DisplayName("인기 상품 조회 API 테스트")
     void getTopProducts() throws Exception {
-        when(productService.getTopProducts(anyInt(), anyInt()))
-                .thenReturn(List.of(testProduct));
+        // ProductRankingDto 모킹
+        ProductRankingDto mockRankingDto = new ProductRankingDto(
+                1L,
+                "테스트 상품",
+                "http://image.url",
+                100,
+                1
+        );
+
+        when(productService.getTopProducts(anyString(), anyInt()))
+                .thenReturn(List.of(mockRankingDto));
 
         mockMvc.perform(get("/api/product/top")
+                        .param("period", "daily")
                         .param("size", "5"))
                 .andExpect(status().isOk());
     }

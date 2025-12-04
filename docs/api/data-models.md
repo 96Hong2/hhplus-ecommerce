@@ -328,11 +328,13 @@ id BIGINT [pk, increment, note: '인기 상품 통계 고유 ID']
 product_id BIGINT [not null, ref: > products.id, note: '상품 ID']
 sales_count INT [not null, default: 0, note: '판매 수량']
 calculation_date DATE [not null, note: '집계 기준일']
+period_type VARCHAR(10) [note: '집계 기간 타입 : DAILY(일간), WEEKLY(주간), MONTHLY(월간), ALL_TIME(전체기간)']
 rank INT [not null, note: '순위']
 created_at DATETIME [not null, default: `CURRENT_TIMESTAMP`, note: '생성일시']
 
 indexes {
-(calculation_date, rank) [unique]
+(calculation_date, period_type, rank) [unique]
+(calculation_date, product_id)
 product_id
 calculation_date
 }
@@ -494,9 +496,9 @@ note: '최근 3일간 인기 상품 통계 (배치로 집계)'
 - `popular_products`: 인기 상품 순위
 
 **비즈니스 규칙**:
-- 최근 3일간 판매량 기준으로 집계
-- Top 5 순위만 저장
+- 판매량 기준으로 집계
 - 배치 작업으로 일 1회 집계
+- 일별, 주별, 월별, 전체 기간 통계
 - 판매량이 동일한 경우 최근 주문된 상품이 우선
 
 ---

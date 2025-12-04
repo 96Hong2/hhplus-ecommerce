@@ -26,6 +26,12 @@ public class BusinessConstants {
     public static final int TOP_PRODUCTS_COUNT = 5; // Top N 상품 개수
     public static final int POPULAR_PRODUCTS_DAYS = 3; // 인기 상품 집계 기간 (일)
 
+    // Redis 키
+    public static final String REDIS_TOP_N_PREFIX = "product:topN:";
+    public static final String REDIS_TOP_N_DAILY_KEY = REDIS_TOP_N_PREFIX + "daily";
+    public static final String REDIS_TOP_N_WEEKLY_KEY = REDIS_TOP_N_PREFIX + "weekly";
+    public static final String REDIS_TOP_N_MONTHLY_KEY = REDIS_TOP_N_PREFIX + "monthly";
+
     private BusinessConstants() {
         throw new AssertionError("유틸리티 클래스는 인스턴스화할 수 없습니다.");
     }
