@@ -133,7 +133,7 @@ class ProductControllerTest {
                 1
         );
 
-        when(productService.getTopProducts(anyString(), anyInt()))
+        when(productService.getTopProducts(any(), anyInt()))
                 .thenReturn(List.of(mockRankingDto));
 
         mockMvc.perform(get("/api/product/top")

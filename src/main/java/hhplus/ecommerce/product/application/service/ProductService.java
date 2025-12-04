@@ -15,6 +15,7 @@ import hhplus.ecommerce.product.presentation.dto.response.ProductDetailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -240,7 +241,7 @@ public class ProductService {
      * @return 인기 상품 랭킹 목록 (순위 포함)
      */
     @Cacheable(value = "popularProducts", key = "#period + ':' + #limit")
-    public List<ProductRankingDto> getTopProducts(String period, int limit) {
+    public List<ProductRankingDto> getTopProducts(PeriodType period, int limit) {
 
         if (limit > BusinessConstants.MAX_RANK || limit <= 0) {
             throw ProductException.getListFailed(
@@ -250,10 +251,10 @@ public class ProductService {
         }
 
         // 기간에 따라 Redis 키 선택
-        String redisKey = switch (period.toLowerCase()) {
-            case "daily" -> BusinessConstants.REDIS_TOP_N_DAILY_KEY;
-            case "weekly" -> BusinessConstants.REDIS_TOP_N_WEEKLY_KEY;
-            case "monthly" -> BusinessConstants.REDIS_TOP_N_MONTHLY_KEY;
+        String redisKey = switch (period) {
+            case DAILY -> BusinessConstants.REDIS_TOP_N_DAILY_KEY;
+            case WEEKLY -> BusinessConstants.REDIS_TOP_N_WEEKLY_KEY;
+            case MONTHLY -> BusinessConstants.REDIS_TOP_N_MONTHLY_KEY;
             default -> throw ProductException.getListFailed("지원하지 않는 기간입니다: " + period + " (daily, weekly, monthly만 가능)");
         };
 
@@ -264,17 +265,11 @@ public class ProductService {
 
         // Redis에 데이터가 없을 경우 DB에서 조회 (백업 전략)
         if (ranking == null || ranking.isEmpty()) {
-            PeriodType periodType = switch (period.toLowerCase()) {
-                case "daily" -> PeriodType.DAILY;
-                case "weekly" -> PeriodType.WEEKLY;
-                case "monthly" -> PeriodType.MONTHLY;
-                default -> throw ProductException.getListFailed("지원하지 않는 기간입니다: " + period);
-            };
 
             // DB에서 가장 최근 집계된 인기 상품 조회
             List<PopularProduct> popularProducts = popularProductRepository.findTopNByPeriodType(
-                periodType,
-                org.springframework.data.domain.PageRequest.of(0, limit)
+                period,
+                PageRequest.of(0, limit)
             );
 
             // DB에도 데이터가 없으면 빈 리스트 반환
@@ -319,7 +314,7 @@ public class ProductService {
             .findAllById(productIds).stream()
             .collect(Collectors.toMap(Product::getProductId, p -> p));
 
-        // ProductRankingDto 변환
+        // ProductRankingDto 변환 (순위는 1부터 시작)
         AtomicInteger rank = new AtomicInteger(1);
         return ranking.stream()
             .map(tuple -> {
@@ -330,14 +325,12 @@ public class ProductService {
                     return null;
                 }
 
-                rank.getAndIncrement();
-
                 return new ProductRankingDto(
                     product.getProductId(),
                     product.getProductName(),
                     product.getImageUrl(),
                     tuple.getScore().intValue(), // 판매량
-                    rank.get() // 순위 (1위, 2위, ...)
+                    rank.getAndIncrement() // 순위 (1위, 2위, ...) - 현재 값을 반환하고 증가
                 );
             })
             .filter(Objects::nonNull) // null 아닌 값들만 리스트에 넣음

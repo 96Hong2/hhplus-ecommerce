@@ -4,6 +4,7 @@ import hhplus.ecommerce.common.domain.exception.ProductException;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
 import hhplus.ecommerce.product.application.service.ProductMapper;
 import hhplus.ecommerce.product.application.service.ProductService;
+import hhplus.ecommerce.product.domain.model.PeriodType;
 import hhplus.ecommerce.product.domain.model.Product;
 import hhplus.ecommerce.product.presentation.dto.request.ProductRegistrationRequest;
 import hhplus.ecommerce.product.presentation.dto.request.ProductUpdateRequest;
@@ -144,13 +145,13 @@ public class ProductController {
     /**
      * 인기 상품 조회
      * GET /api/product/top
-     * @param period 조회 기간 (기본값: daily, 옵션: daily/weekly/monthly)
+     * @param period 조회 기간 (기본값: DAILY, 옵션: DAILY/WEEKLY/MONTHLY)
      * @param size 조회할 상품 개수 (기본값: 5, 최대: 50)
      * @return 인기 상품 목록 (기간별 판매량 기준)
      */
     @GetMapping("/top")
     public List<ProductListResponse> getTopProducts(
-            @RequestParam(defaultValue = "daily") String period,
+            @RequestParam(defaultValue = "DAILY") PeriodType period,
             @RequestParam(defaultValue = "5") int size) {
         return productService.getTopProducts(period, size).stream()
                 .map(productMapper::toProductListResponse)
