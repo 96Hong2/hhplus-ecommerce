@@ -136,7 +136,7 @@ public class CouponController {
             return issueFirstComeCoupon(couponId, request);
         }
 
-        UserCoupon userCoupon = redisCouponService.issueCouponWithRedis(request.getUserId(), couponId);
+        UserCoupon userCoupon = redisCouponService.issueCouponWithRedisZset(request.getUserId(), couponId);
         Coupon coupon = couponService.getCouponById(couponId);
         UserCouponResponse response = couponMapper.toUserCouponResponse(userCoupon, coupon);
 

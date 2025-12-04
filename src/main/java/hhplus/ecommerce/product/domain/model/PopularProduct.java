@@ -11,10 +11,26 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ *
+ * 역할: 인기상품 랭킹 스냅샷 저장 (히스토리/분석용)
+ *
+ * 활용 방안:
+ * 1. 스케줄러로 매일 자정 Redis → DB 스냅샷 저장
+ * 2. 히스토리 조회: "최근 7일간 특정 상품의 순위 변화"
+ * 3. 트렌드 분석: "이번 주 급상승 상품"
+ * 4. Redis 장애 시 백업 데이터로 활용
+ * 5. 리포트/대시보드용 집계 데이터
+ *
+ * Redis vs DB 역할 분리:
+ * - Redis: 실시간 랭킹 조회 (빠른 읽기)
+ * - DB (PopularProduct): 히스토리 저장 (분석/백업)
+ */
+
 @Entity
 @Table(name = "popular_products", indexes = {
-    @Index(name = "idx_calculation_rank", columnList = "calculation_date, rank", unique = true),
-    @Index(name = "idx_product_id", columnList = "product_id"),
+    @Index(name = "idx_calculation_rank", columnList = "calculation_date, period_type, rank", unique = true),
+    @Index(name = "idx_calculation_product_id", columnList = "calculation_date, product_id"),
     @Index(name = "idx_calculation_date", columnList = "calculation_date")
 })
 @Getter
@@ -35,6 +51,10 @@ public class PopularProduct {
     @Column(name = "calculation_date", nullable = false)
     private LocalDate calculationDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "period_type", nullable = false)
+    private PeriodType periodType;
+
     @Column(name = "rank", nullable = false)
     private int rank;
 
@@ -42,11 +62,12 @@ public class PopularProduct {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private PopularProduct(Long popularProductId, Long productId, int salesCount, LocalDate calculationDate, int rank) {
+    private PopularProduct(Long popularProductId, Long productId, int salesCount, LocalDate calculationDate, PeriodType periodType, int rank) {
         this.popularProductId = popularProductId;
         this.productId = productId;
         this.salesCount = salesCount;
         this.calculationDate = calculationDate;
+        this.periodType = periodType;
         this.rank = rank;
     }
 
@@ -58,13 +79,13 @@ public class PopularProduct {
      * @param rank 순위
      * @return 생성된 인기 상품
      */
-    public static PopularProduct create(Long productId, int salesCount, LocalDate calculationDate, int rank) {
+    public static PopularProduct create(Long productId, int salesCount, LocalDate calculationDate, PeriodType periodType, int rank) {
         validateProductId(productId);
         validateSalesCount(salesCount);
         validateCalculationDate(calculationDate);
         validateRank(rank);
 
-        return new PopularProduct(null, productId, salesCount, calculationDate, rank);
+        return new PopularProduct(null, productId, salesCount, calculationDate, periodType, rank);
     }
 
     private static void validateProductId(Long productId) {

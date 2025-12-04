@@ -3,19 +3,29 @@ package hhplus.ecommerce.product.application.service;
 import hhplus.ecommerce.common.domain.constants.BusinessConstants;
 import hhplus.ecommerce.common.domain.exception.ProductException;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
+import hhplus.ecommerce.product.application.dto.ProductRankingDto;
+import hhplus.ecommerce.product.domain.model.PeriodType;
+import hhplus.ecommerce.product.domain.model.PopularProduct;
 import hhplus.ecommerce.product.domain.model.Product;
 import hhplus.ecommerce.product.domain.model.ProductOption;
+import hhplus.ecommerce.product.domain.repository.PopularProductRepository;
 import hhplus.ecommerce.product.domain.repository.ProductOptionRepository;
 import hhplus.ecommerce.product.domain.repository.ProductRepository;
 import hhplus.ecommerce.product.presentation.dto.response.ProductDetailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +34,8 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final PopularProductRepository popularProductRepository;
 
     /**
      * 상품 등록
@@ -217,21 +229,112 @@ public class ProductService {
     }
 
     /**
-     * 인기 상품 조회 (최근 집계일수간 판매량 기준)
-     * Redis 캐싱 적용: TTL 1시간
-     * @param TopN 조회할 상품 개수
-     * @param searchDays 집계 일수
-     * @return 인기 상품 목록
+     * 인기 상품 조회 (기간별 판매량 기준)
+     *
+     * Redis 실시간 랭킹 조회 전략:
+     * - daily: 오늘 판매량 기준
+     * - weekly: 최근 7일 판매량 기준
+     * - monthly: 이번 달 판매량 기준
+     *
+     * @param period 조회 기간 ("daily", "weekly", "monthly")
+     * @param limit 조회할 상품 개수 (Top N)
+     * @return 인기 상품 랭킹 목록 (순위 포함)
      */
-    @Cacheable(value = "popularProducts", key = "#TopN + ':' + #searchDays")
-    public List<Product> getTopProducts(int TopN, int searchDays) {
-        if (TopN > BusinessConstants.MAX_RANK || TopN <= 0 || searchDays <= 0) {
-            String message = String.format("집계 일수는 1 이상, 조회할 상품 수는 1 이상 %d개 이하여야 합니다. 조회할 상품 수: %d, 집계 일수: %d", BusinessConstants.MAX_RANK, TopN, searchDays);
-            throw ProductException.getListFailed(message);
+    @Cacheable(value = "popularProducts", key = "#period + ':' + #limit")
+    public List<ProductRankingDto> getTopProducts(PeriodType period, int limit) {
+
+        if (limit > BusinessConstants.MAX_RANK || limit <= 0) {
+            throw ProductException.getListFailed(
+                String.format("조회할 상품 수는 1 이상 %d개 이하여야 합니다. 입력값: %d",
+                    BusinessConstants.MAX_RANK, limit)
+            );
         }
 
-        // TODO: PopularProduct 집계 테이블 기반으로 인기 상품 조회 쿼리 구현 필요
-        return List.of();
+        // 기간에 따라 Redis 키 선택
+        String redisKey = switch (period) {
+            case DAILY -> BusinessConstants.REDIS_TOP_N_DAILY_KEY;
+            case WEEKLY -> BusinessConstants.REDIS_TOP_N_WEEKLY_KEY;
+            case MONTHLY -> BusinessConstants.REDIS_TOP_N_MONTHLY_KEY;
+            default -> throw ProductException.getListFailed("지원하지 않는 기간입니다: " + period + " (daily, weekly, monthly만 가능)");
+        };
+
+        // Redis ZSet에서 score 내림차순으로 상위 limit 개 조회
+        Set<ZSetOperations.TypedTuple<String>> ranking =
+            redisTemplate.opsForZSet()
+                .reverseRangeWithScores(redisKey, 0, limit - 1);
+
+        // Redis에 데이터가 없을 경우 DB에서 조회 (백업 전략)
+        if (ranking == null || ranking.isEmpty()) {
+
+            // DB에서 가장 최근 집계된 인기 상품 조회
+            List<PopularProduct> popularProducts = popularProductRepository.findTopNByPeriodType(
+                period,
+                PageRequest.of(0, limit)
+            );
+
+            // DB에도 데이터가 없으면 빈 리스트 반환
+            if (popularProducts.isEmpty()) {
+                return List.of();
+            }
+
+            // PopularProduct에서 productId 추출하여 상품 정보 조회
+            List<Long> productIds = popularProducts.stream()
+                .map(PopularProduct::getProductId)
+                .collect(Collectors.toList());
+
+            Map<Long, Product> productMap = productRepository
+                .findAllById(productIds).stream()
+                .collect(Collectors.toMap(Product::getProductId, p -> p));
+
+            // ProductRankingDto 변환
+            return popularProducts.stream()
+                .map(pp -> {
+                    Product product = productMap.get(pp.getProductId());
+                    if (product == null) {
+                        return null;
+                    }
+                    return new ProductRankingDto(
+                        product.getProductId(),
+                        product.getProductName(),
+                        product.getImageUrl(),
+                        pp.getSalesCount(),
+                        pp.getRank()
+                    );
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        }
+
+        // Redis에서 조회한 productId로 DB에서 상품 정보 배치 조회 (N+1 방지)
+        List<Long> productIds = ranking.stream()
+            .map(tuple -> Long.parseLong(tuple.getValue()))
+            .collect(Collectors.toList());
+
+        Map<Long, Product> productMap = productRepository
+            .findAllById(productIds).stream()
+            .collect(Collectors.toMap(Product::getProductId, p -> p));
+
+        // ProductRankingDto 변환 (순위는 1부터 시작)
+        AtomicInteger rank = new AtomicInteger(1);
+        return ranking.stream()
+            .map(tuple -> {
+                Long productId = Long.parseLong(tuple.getValue());
+                Product product = productMap.get(productId);
+
+                if (product == null) {
+                    return null;
+                }
+
+                return new ProductRankingDto(
+                    product.getProductId(),
+                    product.getProductName(),
+                    product.getImageUrl(),
+                    tuple.getScore().intValue(), // 판매량
+                    rank.getAndIncrement() // 순위 (1위, 2위, ...) - 현재 값을 반환하고 증가
+                );
+            })
+            .filter(Objects::nonNull) // null 아닌 값들만 리스트에 넣음
+            .collect(Collectors.toList());
     }
 
     /**

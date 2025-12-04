@@ -31,11 +31,83 @@ public class RedisCouponService {
     private final RedisTemplate<String, String> redisTemplate;
     private final CouponService couponService;
     private final RedissonClient redissonClient;
-    private final AsyncUserCouponSaver asyncUserCouponSaver;
+    private final AsyncUserCouponSaver asyncUserCouponSaver; // SET 방식에서만 사용
     private final UserCouponRepository userCouponRepository;
 
     private static final String COUPON_ISSUE_KEY_PREFIX = "coupon:issue:";
+    private static final String COUPON_ISSUE_END_KEY_PREFIX = "coupon:issue:end:";
     private static final String COUPON_LOCK_KEY_PREFIX = "coupon:lock:";
+
+    /**
+     * Redis SortedSet를 이용한 선착순 쿠폰 발급 (Lua 스크립트 버전)
+     * - Lua 스크립트로 중복 체크 + ZADD + ZCARD 원자적 처리하여 순서 보장
+     * - TimeStamp 정렬을 통해 정확한 선착순 확인
+     * - 중복 발급 자동 제거 (ZSet 특성)
+     */
+    public UserCoupon issueCouponWithRedisZset(Long userId, Long couponId) {
+        // 1. 종료 여부 캐싱을 통해 1차 필터링
+        String endKey = COUPON_ISSUE_END_KEY_PREFIX + couponId;
+        String isEnd = redisTemplate.opsForValue().get(endKey);
+        if (isEnd != null) {
+            throw CouponException.couponIssueLimitExceeded(couponId);
+        }
+
+        Coupon coupon = couponService.getCouponById(couponId);
+        if (coupon == null) {
+            throw CouponException.couponNotFound(couponId);
+        }
+
+        String issueKey = COUPON_ISSUE_KEY_PREFIX + couponId;
+
+        // 2. Lua 스크립트로 원자적 처리: 중복 체크 + ZADD + ZCARD(전체 수량 확인)
+        String luaScript =
+            "local exists = redis.call('ZRANK', KEYS[1], ARGV[2]) " +
+            "if exists ~= false then " +
+            "    return -1 " + // 이미 발급받음 (중복)
+            "end " +
+            "redis.call('ZADD', KEYS[1], ARGV[1], ARGV[2]) " +
+            "local count = redis.call('ZCARD', KEYS[1]) " +
+            "if count > tonumber(ARGV[3]) then " +
+            "    redis.call('ZREM', KEYS[1], ARGV[2]) " + // 한도 초과 시 즉시 제거
+            "    return 0 " + // 한도 초과
+            "end " +
+            "return count"; // 발급 후 전체 수량 반환
+
+        Long result = redisTemplate.execute(
+            new DefaultRedisScript<>(luaScript, Long.class),
+            List.of(issueKey),
+            String.valueOf(System.currentTimeMillis()),
+            userId.toString(),
+            String.valueOf(coupon.getMaxIssueCount())
+        );
+
+        // 3. 결과 검증
+        if (result == null) {
+            throw CouponException.couponIssueFailed("쿠폰 발급 처리 중 오류가 발생했습니다.");
+        }
+
+        if (result == -1) {
+            throw CouponException.couponAlreadyIssued(userId, couponId);
+        }
+
+        // 4. 선착순 한도 초과 체크
+        if (result == 0) {
+            // 종료 플래그 설정 (2분 캐싱)
+            redisTemplate.opsForValue().set(endKey, "true", 2, TimeUnit.MINUTES);
+            throw CouponException.couponIssueLimitExceeded(couponId);
+        }
+
+        // 5. DB에 저장 (동기 처리 - 즉시 결과 반환)
+        UserCoupon userCoupon = UserCoupon.create(userId, couponId);
+        try {
+            return userCouponRepository.save(userCoupon);
+        } catch (Exception e) {
+            // DB 저장 실패 시 보상: ZSet에서 제거
+            redisTemplate.opsForZSet().remove(issueKey, userId.toString());
+            log.error("쿠폰 발급 DB 저장 실패. userId={}, couponId={}", userId, couponId, e);
+            throw CouponException.couponIssueFailed("쿠폰 발급 중 오류가 발생했습니다.");
+        }
+    }
 
     /**
      * Redis SET을 이용한 선착순 쿠폰 발급
@@ -46,7 +118,7 @@ public class RedisCouponService {
      * 4. DB에 저장 (비동기 작업, 실패 시 Redis에서 제거)
      * 5. 락 해제
      */
-    public UserCoupon issueCouponWithRedis(Long userId, Long couponId) {
+    public UserCoupon issueCouponWithRedisSet(Long userId, Long couponId) {
         String key = COUPON_ISSUE_KEY_PREFIX + couponId;
         String lockKey = COUPON_LOCK_KEY_PREFIX + couponId;
 
@@ -126,22 +198,21 @@ public class RedisCouponService {
     }
 
     /**
-     * Redis 기반 발급된 쿠폰 수 조회
+     * Redis ZSet 기반 발급된 쿠폰 수 조회
      */
     public Long getIssuedCount(Long couponId) {
         String key = COUPON_ISSUE_KEY_PREFIX + couponId;
-        Long size = redisTemplate.opsForSet().size(key);
+        Long size = redisTemplate.opsForZSet().size(key);
         return size != null ? size : 0L;
     }
 
     /**
-     * Redis 기반 중복 발급 체크
+     * Redis ZSet 기반 중복 발급 체크
      */
     public boolean isAlreadyIssued(Long userId, Long couponId) {
         String key = COUPON_ISSUE_KEY_PREFIX + couponId;
-        return Boolean.TRUE.equals(
-            redisTemplate.opsForSet().isMember(key, userId.toString())
-        );
+        Double score = redisTemplate.opsForZSet().score(key, userId.toString());
+        return score != null;
     }
 
     /**

@@ -29,10 +29,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 /**
- * Redis SET 기반 쿠폰 동시성 테스트
+ * Redis SortedSet 기반 선착순 쿠폰 동시성 테스트
+ * Lua 스크립트를 통한 원자적 순서 보장 및 정확한 수량 제어 검증
  * IntegrationTestBase를 상속하여 공유 Testcontainer 설정 사용
  */
 class RedisCouponConcurrencyTest extends IntegrationTestBase {
@@ -110,20 +110,20 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("Redis 동시성 테스트: 선착순 쿠폰 발급 - 100명만 성공")
-    void issueFirstComeCouponWithRedis_OnlyHundredSuccess() throws InterruptedException {
+    @DisplayName("Redis ZSet 동시성: 150명 요청 시 선착순 100명만 성공")
+    void issueFirstComeCouponWithRedisZset_OnlyHundredSuccess() throws InterruptedException {
         int threadCount = 150;
         ExecutorService executorService = Executors.newFixedThreadPool(50);
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger failCount = new AtomicInteger(0);
 
-        // 150명이 동시에 쿠폰 발급 시도
+        // When: 150명이 동시에 쿠폰 발급 시도
         for (int i = 0; i < threadCount; i++) {
             final Long userId = userIds.get(i);
             executorService.execute(() -> {
                 try {
-                    redisCouponService.issueCouponWithRedis(userId, couponId);
+                    redisCouponService.issueCouponWithRedisZset(userId, couponId);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();
@@ -136,26 +136,18 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
         latch.await();
         executorService.shutdown();
 
-        // 비동기 DB 저장 완료 대기 (최대 30초)
-        await().atMost(30, TimeUnit.SECONDS)
-            .pollInterval(200, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> {
-                assertThat(userCouponRepository.countByCouponId(couponId))
-                    .isEqualTo(100);
-            });
-
-        // Then: 정확히 100명만 성공, 50명은 실패
+        // Then: 정확히 100명만 성공, 50명은 실패 (동기 처리로 즉시 확인 가능)
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(50);
 
-        // Redis와 DB 모두 100개 확인
+        // Redis ZSet과 DB 모두 정확히 100개 확인
         assertThat(redisCouponService.getIssuedCount(couponId)).isEqualTo(100L);
         assertThat(userCouponRepository.countByCouponId(couponId)).isEqualTo(100);
     }
 
     @Test
-    @DisplayName("Redis 동시성 테스트: 동일 사용자가 여러 번 시도해도 1개만 발급")
-    void issueFirstComeCouponWithRedis_SameUserOnlyOnce() throws InterruptedException {
+    @DisplayName("Redis ZSet 중복 방지: 동일 사용자가 10번 시도해도 1개만 발급")
+    void issueFirstComeCouponWithRedisZset_SameUserOnlyOnce() throws InterruptedException {
         Long singleUserId = userIds.get(0);
 
         int threadCount = 10;
@@ -163,11 +155,11 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger successCount = new AtomicInteger(0);
 
-        // 동일 사용자가 10번 동시 시도
+        // When: 동일 사용자가 10번 동시 시도
         for (int i = 0; i < threadCount; i++) {
             executorService.execute(() -> {
                 try {
-                    redisCouponService.issueCouponWithRedis(singleUserId, couponId);
+                    redisCouponService.issueCouponWithRedisZset(singleUserId, couponId);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     // 중복 발급 시도는 예외 발생
@@ -180,27 +172,19 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
         latch.await();
         executorService.shutdown();
 
-        // 비동기 DB 저장 완료 대기 (최대 30초)
-        await().atMost(30, TimeUnit.SECONDS)
-            .pollInterval(200, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> {
-                assertThat(userCouponRepository.countByCouponId(couponId))
-                    .isEqualTo(1);
-            });
-
-        // Then: 1번만 성공
+        // Then: ZSet 특성으로 1번만 성공 (동일 member는 중복 불가)
         assertThat(successCount.get()).isEqualTo(1);
         assertThat(redisCouponService.isAlreadyIssued(singleUserId, couponId)).isTrue();
         assertThat(userCouponRepository.countByCouponId(couponId)).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("Redis 동시성 테스트: 선착순 쿠폰 발급 - 정확히 한도만큼만 발급")
-    void issueFirstComeCouponWithRedis_ExactLimit() throws InterruptedException {
+    @DisplayName("Redis ZSet 정확한 수량 제어: 100명 요청 시 한도 50명만 발급")
+    void issueFirstComeCouponWithRedisZset_ExactLimit() throws InterruptedException {
         // Given: 50개 한정 쿠폰 생성
         User admin = userRepository.save(User.create("admin2_redis", UserRole.ADMIN));
         Coupon limitedCoupon = couponService.createCoupon(
-                "Redis 제한된 선착순 쿠폰",
+                "Redis ZSet 제한 쿠폰",
                 DiscountType.PERCENTAGE,
                 BigDecimal.valueOf(10),
                 BigDecimal.valueOf(30000),
@@ -222,10 +206,10 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
             final Long userId = userIds.get(i);
             executorService.execute(() -> {
                 try {
-                    redisCouponService.issueCouponWithRedis(userId, limitedCouponId);
+                    redisCouponService.issueCouponWithRedisZset(userId, limitedCouponId);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
-                    // 발급 실패
+                    // 발급 실패 (한도 초과 또는 기타 오류)
                 } finally {
                     latch.countDown();
                 }
@@ -235,15 +219,7 @@ class RedisCouponConcurrencyTest extends IntegrationTestBase {
         latch.await();
         executorService.shutdown();
 
-        // 비동기 DB 저장 완료 대기 (최대 30초)
-        await().atMost(30, TimeUnit.SECONDS)
-            .pollInterval(200, TimeUnit.MILLISECONDS)
-            .untilAsserted(() -> {
-                assertThat(userCouponRepository.countByCouponId(limitedCouponId))
-                    .isEqualTo(50);
-            });
-
-        // Then: 정확히 50명만 성공
+        // Then: Lua 스크립트로 정확히 50명만 성공 (순서 보장)
         assertThat(successCount.get()).isEqualTo(50);
         assertThat(redisCouponService.getIssuedCount(limitedCouponId)).isEqualTo(50L);
         assertThat(userCouponRepository.countByCouponId(limitedCouponId)).isEqualTo(50);
