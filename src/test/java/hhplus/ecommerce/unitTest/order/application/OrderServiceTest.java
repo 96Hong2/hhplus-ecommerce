@@ -1,5 +1,6 @@
 package hhplus.ecommerce.unitTest.order.application;
 
+import hhplus.ecommerce.common.event.EventPublisher;
 import hhplus.ecommerce.common.presentation.response.PageResponse;
 import hhplus.ecommerce.order.application.dto.OrderDetailInfo;
 import hhplus.ecommerce.order.application.dto.OrderItemDetailInfo;
@@ -46,6 +47,9 @@ class OrderServiceTest {
 
     @Mock
     private ExternalIntegrationService externalIntegrationService;
+
+    @Mock
+    private EventPublisher eventPublisher;
 
     @InjectMocks
     private CreateOrderUseCase createOrderUseCase;
@@ -107,27 +111,8 @@ class OrderServiceTest {
         doNothing().when(orderService).reserveStocks(anyLong(), any());
         when(orderService.saveOrderItems(anyLong(), any())).thenReturn(List.of());
 
-        // CreateOrderUseCase에서 getOrder()를 호출하므로 mock 추가
-        when(orderService.getOrder(anyLong())).thenAnswer(invocation -> {
-            Long orderId = invocation.getArgument(0);
-            return new Order(
-                    orderId,
-                    "ORD202501010000001",
-                    userId,
-                    java.math.BigDecimal.valueOf(20000),
-                    java.math.BigDecimal.valueOf(2000),
-                    java.math.BigDecimal.valueOf(18000),
-                    null,
-                    null,
-                    OrderStatus.PENDING,
-                    LocalDateTime.now(),
-                    LocalDateTime.now(),
-                    LocalDateTime.now().plusMinutes(15)
-            );
-        });
-
-        // ExternalIntegrationService mock 추가
-        when(externalIntegrationService.sendOrderToERP(any())).thenReturn(null);
+        // EventPublisher mock (이벤트는 발행만 하고 처리는 안 함)
+        doNothing().when(eventPublisher).publish(any());
 
         // when
         OrderCreateResponse result = createOrderUseCase.execute(userId, request);
