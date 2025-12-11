@@ -32,12 +32,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
 /**
- * Saga 패턴 보상 트랜잭션 테스트
+ * 이벤트 기반 Saga 코레오그래피 패턴 테스트
  *
- * 외부 시스템 연동 실패 시 보상 트랜잭션이 정상적으로 실행되는지 검증
+ * 이벤트 기반 아키텍처에서 외부 시스템 연동 실패 시
+ * 보상 트랜잭션이 이벤트 핸들러를 통해 자동으로 실행되는지 검증
  * IntegrationTestBase를 상속하여 공유 Testcontainer 설정 사용
  */
-@Disabled
 class SagaCompensationTest extends IntegrationTestBase {
 
     @Autowired
@@ -69,7 +69,7 @@ class SagaCompensationTest extends IntegrationTestBase {
     }
 
     @Test
-    @DisplayName("보상 트랜잭션 테스트: 외부 시스템 연동 실패 시 주문 취소 및 재고 복구")
+    @DisplayName("이벤트 기반 보상: 외부 시스템 연동 실패 시 자동으로 주문 취소 및 재고 복구")
     void testCompensationWhenExternalSystemFails() throws Exception {
         // given: 상품 및 재고 준비
         var product = productService.registerProduct(
@@ -105,16 +105,28 @@ class SagaCompensationTest extends IntegrationTestBase {
                 .when(externalIntegrationService)
                 .sendOrderToERP(any(Order.class));
 
-        // when & then: 주문 생성 시도 → 외부 연동 실패 → 예외 발생
-        assertThatThrownBy(() -> createOrderUseCase.execute(1L, orderRequest))
-                .isInstanceOf(IntegrationException.class)
-                .hasMessageContaining("ERP");
+        // when & then: 주문 생성 시도 → 외부 연동 실패 (이벤트 핸들러에서 처리)
+        // 주문 생성은 성공하고, 이벤트 핸들러에서 외부 연동 실패 시 보상 처리
+        var response = createOrderUseCase.execute(1L, orderRequest);
 
-        // 보상 트랜잭션 검증
-        // 1. 주문 상태가 CANCELLED로 변경되었는지 확인
-        List<Order> orders = orderRepository.findByUserId(1L);
-        assertThat(orders).isNotEmpty();
-        Order cancelledOrder = orders.get(0);
+        // 주문 생성은 성공
+        assertThat(response).isNotNull();
+        assertThat(response.getOrderId()).isNotNull();
+
+        // 보상 트랜잭션 검증 (이벤트 핸들러가 자동으로 처리)
+        // 이벤트 처리 완료 대기 (폴링 방식)
+        Order cancelledOrder = null;
+        int maxAttempts = 10;
+        for (int i = 0; i < maxAttempts; i++) {
+            Thread.sleep(200);
+            cancelledOrder = orderRepository.findById(response.getOrderId()).orElseThrow();
+            if (cancelledOrder.getOrderStatus() == OrderStatus.CANCELLED) {
+                break;
+            }
+        }
+
+        // 1. 주문 상태가 CANCELLED로 변경되었는지 확인 (보상 트랜잭션 완료)
+        assertThat(cancelledOrder).isNotNull();
         assertThat(cancelledOrder.getOrderStatus()).isEqualTo(OrderStatus.CANCELLED);
 
         // 2. 재고가 복구되었는지 확인
