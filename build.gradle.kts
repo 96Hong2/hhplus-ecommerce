@@ -34,6 +34,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.redisson:redisson-spring-boot-starter:3.52.0")
 
+    // Kafka
+    implementation("org.springframework.kafka:spring-kafka")
+
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.mysql:mysql-connector-j") // mysql connector
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
@@ -51,6 +54,8 @@ dependencies {
     testImplementation("com.redis:testcontainers-redis:2.2.2")
     // 비동기 작업 완료 대기
     testImplementation("org.awaitility:awaitility:4.2.0")
+    // kafka
+    testImplementation("org.testcontainers:kafka")
 }
 
 tasks.withType<Test> {
