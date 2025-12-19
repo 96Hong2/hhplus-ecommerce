@@ -4,6 +4,7 @@ import com.redis.testcontainers.RedisContainer;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -29,10 +30,20 @@ public class TestContainersConfiguration {
             .withExposedPorts(6379)
             .withStartupTimeout(Duration.ofSeconds(60));
 
+    // Kafka Testcontainer 추가
+    public static KafkaContainer kafkaContainer =
+            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.1"))
+            .withStartupTimeout(Duration.ofSeconds(90));
+
     static {
         // Redis 컨테이너 시작
         if (!redisContainer.isRunning()) {
             redisContainer.start();
+        }
+
+        // Kafka 컨테이너 시작
+        if (!kafkaContainer.isRunning()) {
+            kafkaContainer.start();
         }
     }
 
@@ -45,5 +56,10 @@ public class TestContainersConfiguration {
     @Bean
     RedisContainer redisContainer() {
         return redisContainer;
+    }
+
+    @Bean
+    KafkaContainer kafkaContainer() {
+        return kafkaContainer;
     }
 }

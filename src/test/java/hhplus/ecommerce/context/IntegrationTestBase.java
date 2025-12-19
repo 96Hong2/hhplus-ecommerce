@@ -39,5 +39,8 @@ public abstract class IntegrationTestBase {
         registry.add("spring.data.redis.host", TestContainersConfiguration.redisContainer::getHost);
         registry.add("spring.data.redis.port",
             () -> TestContainersConfiguration.redisContainer.getMappedPort(6379).toString());
+
+        // Kafka 연결 정보 설정
+        registry.add("spring.kafka.bootstrap-servers", TestContainersConfiguration.kafkaContainer::getBootstrapServers);
     }
 }

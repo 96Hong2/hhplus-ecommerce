@@ -1,6 +1,8 @@
 package hhplus.ecommerce.coupon.application.service;
 
 import hhplus.ecommerce.common.domain.exception.CouponException;
+import hhplus.ecommerce.common.event.EventPublisher;
+import hhplus.ecommerce.coupon.domain.event.CouponUsedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import java.util.List;
 public class UserCouponService {
     private final UserCouponRepository userCouponRepository;
     private final CouponService couponService;
+    private final EventPublisher eventPublisher; // 이벤트 발행
 
     /**
      * 일반 쿠폰 발급
@@ -95,7 +98,12 @@ public class UserCouponService {
         }
 
         userCoupon.use(orderId);
-        return userCouponRepository.save(userCoupon);
+        UserCoupon saved = userCouponRepository.save(userCoupon);
+
+        // 쿠폰 사용 이벤트 발행
+        eventPublisher.publish(CouponUsedEvent.of(saved));
+
+        return saved;
     }
 
     /**

@@ -1,6 +1,8 @@
 package hhplus.ecommerce.coupon.application.service;
 
 import hhplus.ecommerce.common.domain.exception.CouponException;
+import hhplus.ecommerce.common.event.EventPublisher;
+import hhplus.ecommerce.coupon.domain.event.CouponIssuedEvent;
 import hhplus.ecommerce.coupon.domain.model.Coupon;
 import hhplus.ecommerce.coupon.domain.model.UserCoupon;
 import hhplus.ecommerce.coupon.domain.repository.UserCouponRepository;
@@ -33,6 +35,7 @@ public class RedisCouponService {
     private final RedissonClient redissonClient;
     private final AsyncUserCouponSaver asyncUserCouponSaver; // SET 방식에서만 사용
     private final UserCouponRepository userCouponRepository;
+    private final EventPublisher eventPublisher; // 이벤트 발행
 
     private static final String COUPON_ISSUE_KEY_PREFIX = "coupon:issue:";
     private static final String COUPON_ISSUE_END_KEY_PREFIX = "coupon:issue:end:";
@@ -100,7 +103,12 @@ public class RedisCouponService {
         // 5. DB에 저장 (동기 처리 - 즉시 결과 반환)
         UserCoupon userCoupon = UserCoupon.create(userId, couponId);
         try {
-            return userCouponRepository.save(userCoupon);
+            UserCoupon saved = userCouponRepository.save(userCoupon);
+
+            // 쿠폰 발급 이벤트 발행
+            eventPublisher.publish(CouponIssuedEvent.of(saved, coupon));
+
+            return saved;
         } catch (Exception e) {
             // DB 저장 실패 시 보상: ZSet에서 제거
             redisTemplate.opsForZSet().remove(issueKey, userId.toString());
